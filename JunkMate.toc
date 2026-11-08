@@ -3,6 +3,7 @@
 ## Notes: Sells your junk and repairs your gear whenever you open a vendor, and warns when gear is wearing out. Type /junkmate.
 ## Author: bizzal70
 ## Version: 0.3.0
+## X-Curse-Project-ID: 1790702
 ## SavedVariables: JunkMateDB
 ## IconTexture: Interface\Icons\INV_Misc_Coin_02
 ## AddonCompartmentFunc: JunkMate_OnAddonCompartmentClick

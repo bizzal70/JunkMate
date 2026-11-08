@@ -46,11 +46,11 @@ Other small addons for World of Warcraft: Forever, all free:
 - **[AltBoard](https://github.com/bizzal70/AltBoard)** shows all your characters at a glance: level, gold, rested and where you left them.
 - **[SwiftQuest](https://github.com/bizzal70/SwiftQuest)** accepts quests and hands them in as soon as you talk to the quest giver, without ever choosing a reward for you.
 - **[SessionRecap](https://github.com/bizzal70/SessionRecap)** keeps a running tally of your play session: gold, experience per hour, quests, gathering and loot.
-- **[MacroKit](https://github.com/bizzal70/MacroKit)** adds ready-made macros for your class and spec (Paladin so far) and never overwrites your own.
+- **[MacroKit](https://github.com/bizzal70/MacroKit)** adds ready-made macros for your class and spec, for all nine classes, and never overwrites your own.
 
 ## Installing
 
-Copy this folder into `World of Warcraft\_forever_\Interface\AddOns\` as `JunkMate`, restart the game, and enable JunkMate on the character select screen.
+Install it from [CurseForge](https://www.curseforge.com/wow/addons/junkmate) (once approved) with the CurseForge app, or by hand: copy this folder into `World of Warcraft\_forever_\Interface\AddOns\` as `JunkMate`, restart the game, and enable JunkMate on the character select screen.
 
 ## Developing
 
