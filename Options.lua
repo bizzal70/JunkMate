@@ -1,7 +1,7 @@
 local addonName, ns = ...
 
 -- A small options window, drawn from plain colours so it needs no texture
--- files. Everything here can also be set with /vendormate.
+-- files. Everything here can also be set with /junkmate.
 
 local ACCENT_R, ACCENT_G, ACCENT_B = 0.85, 0.63, 0.40
 
@@ -93,7 +93,7 @@ local function CreateWindow()
 
     local title = window:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 14, -12)
-    title:SetText("VendorMate")
+    title:SetText("JunkMate")
 
     local close = CreateFrame("Button", nil, window)
     close:SetSize(30, 30)

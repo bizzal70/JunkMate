@@ -32,7 +32,7 @@ C_Container = {
 GEAR = {}
 GetInventoryItemDurability = function(slot) local g = GEAR[slot]; if g then return g[1], g[2] end end
 
-local ns = LoadAddon(ADDON_DIR, "VendorMate")
+local ns = LoadAddon(ADDON_DIR, "JunkMate")
 local function check(cond, what) if not cond then error("CHECK FAILED: " .. what, 2) end; io.write("pass  ", what, "\n") end
 -- Opens a vendor, lets the money from selling arrive, then runs the delayed report.
 local function visit()
@@ -51,7 +51,7 @@ check(ns.Money(12345) == "1g 23s 45c" and ns.Money(500) == "5s" and ns.Money(0) 
 
 Fire("MERCHANT_SHOW")
 check(SELL_CALLS == 0 and REPAIRS == 0, "before its settings load, the addon does nothing at a vendor")
-Fire("ADDON_LOADED", "VendorMate")
+Fire("ADDON_LOADED", "JunkMate")
 check(ns.db.sellJunk and ns.db.repair and ns.db.report, "settings start with selling, repairing and reporting on")
 
 local said = visit()
@@ -87,21 +87,21 @@ visit()
 check(REPAIRS == 2, "a vendor who cannot repair is not asked to")
 CAN_REPAIR, REPAIR_COST = true, 0
 
-SlashCmdList.VENDORMATE("junk")
+SlashCmdList.JUNKMATE("junk")
 JUNK, JUNK_VALUE = 4, 400
 visit()
-check(SELL_CALLS == 3 and not ns.db.sellJunk, "/vendormate junk turns selling off")
-SlashCmdList.VENDORMATE("junk")
-SlashCmdList.VENDORMATE("repair")
+check(SELL_CALLS == 3 and not ns.db.sellJunk, "/junkmate junk turns selling off")
+SlashCmdList.JUNKMATE("junk")
+SlashCmdList.JUNKMATE("repair")
 REPAIR_COST = 300
 visit()
-check(REPAIRS == 2 and SELL_CALLS == 4, "/vendormate repair turns repairing off, and selling carries on")
-SlashCmdList.VENDORMATE("repair"); REPAIR_COST = 0
-SlashCmdList.VENDORMATE("report")
+check(REPAIRS == 2 and SELL_CALLS == 4, "/junkmate repair turns repairing off, and selling carries on")
+SlashCmdList.JUNKMATE("repair"); REPAIR_COST = 0
+SlashCmdList.JUNKMATE("report")
 JUNK, JUNK_VALUE = 2, 200
 said = visit()
-check(SELL_CALLS == 5 and said == "", "/vendormate report turns the chat line off")
-SlashCmdList.VENDORMATE("report")
+check(SELL_CALLS == 5 and said == "", "/junkmate report turns the chat line off")
+SlashCmdList.JUNKMATE("report")
 
 SELL_ENABLED = false; JUNK = 2
 visit()
@@ -136,7 +136,7 @@ GetRepairAllCost = function() return REPAIR_COST, REPAIR_COST > 0 end
 Fire("MERCHANT_CLOSED"); AFTERS = {}
 
 -- worn gear
-local notice = VendorMateDurabilityNotice
+local notice = JunkMateDurabilityNotice
 local label
 for _, f in ipairs(Frames()) do
     if rawget(f, "__text") and f.__text:find("Gear worn", 1, true) then label = f end
@@ -163,9 +163,9 @@ check(not notice.__shown, "repairing clears the warning")
 GEAR[5] = { 20, 100 }
 Fire("UPDATE_INVENTORY_DURABILITY")
 check(notice.__shown and #PRINTED == printedBefore + 2, "and it warns afresh the next time")
-SlashCmdList.VENDORMATE("worn")
-check(not notice.__shown and not ns.db.durabilityWarn, "/vendormate worn turns the warning off")
-SlashCmdList.VENDORMATE("worn")
+SlashCmdList.JUNKMATE("worn")
+check(not notice.__shown and not ns.db.durabilityWarn, "/junkmate worn turns the warning off")
+SlashCmdList.JUNKMATE("worn")
 check(notice.__shown, "and back on")
 notice.__scripts.OnDragStart(notice); notice.__scripts.OnDragStop(notice)
 check(ns.db.noticePosition ~= nil, "the on-screen line can be dragged, and remembers where")
@@ -175,8 +175,8 @@ GetInventoryItemDurability = function(slot) local g = GEAR[slot]; if g then retu
 GEAR = {}; Fire("UPDATE_INVENTORY_DURABILITY")
 
 -- options window
-SlashCmdList.VENDORMATE("")
-check(VendorMateOptions:IsShown(), "/vendormate opens the options")
+SlashCmdList.JUNKMATE("")
+check(JunkMateOptions:IsShown(), "/junkmate opens the options")
 local rows = {}
 for _, f in ipairs(Frames()) do
     if rawget(f, "Refresh") and f.__scripts.OnClick then rows[#rows + 1] = f end
@@ -193,6 +193,6 @@ rows[5].__scripts.OnClick(rows[5])
 check(ns.db.durabilityLevel == 50, "the last steps the warning level up")
 rows[5].__scripts.OnClick(rows[5]); rows[5].__scripts.OnClick(rows[5])
 check(ns.db.durabilityLevel == 25, "and comes back round")
-VendorMate_OnAddonCompartmentClick()
-check(not VendorMateOptions:IsShown(), "the minimap addon list entry toggles the options")
-SlashCmdList.VENDORMATE("help")
+JunkMate_OnAddonCompartmentClick()
+check(not JunkMateOptions:IsShown(), "the minimap addon list entry toggles the options")
+SlashCmdList.JUNKMATE("help")

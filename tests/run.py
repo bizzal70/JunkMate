@@ -18,8 +18,8 @@ lua = lua51.LuaRuntime(unpack_returned_tuples=True)
 lua.globals().ADDON_DIR = ADDON.as_posix()
 lua.execute((TESTS / "wow_stub.lua").read_text(encoding="utf-8"))
 try:
-    lua.execute((TESTS / "test_vendormate.lua").read_text(encoding="utf-8"))
-    print("test_vendormate.lua: ALL PASSED")
+    lua.execute((TESTS / "test_junkmate.lua").read_text(encoding="utf-8"))
+    print("test_junkmate.lua: ALL PASSED")
 except Exception as error:
-    print(f"test_vendormate.lua: ERROR: {error}")
+    print(f"test_junkmate.lua: ERROR: {error}")
     sys.exit(1)

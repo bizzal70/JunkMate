@@ -1,0 +1,12 @@
+## Interface: 16001
+## Title: JunkMate
+## Notes: Sells your junk and repairs your gear whenever you open a vendor, and warns when gear is wearing out. Type /junkmate.
+## Author: bizzal70
+## Version: 0.3.0
+## SavedVariables: JunkMateDB
+## IconTexture: Interface\Icons\INV_Misc_Coin_02
+## AddonCompartmentFunc: JunkMate_OnAddonCompartmentClick
+
+Core.lua
+Durability.lua
+Options.lua

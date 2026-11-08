@@ -1,12 +1,12 @@
-# VendorMate
+# JunkMate
 
-Sells your junk and repairs your gear whenever you open a vendor. One addon, one repository: `bizzal70/VendorMate`.
+Sells your junk and repairs your gear whenever you open a vendor. One addon, one repository: `bizzal70/JunkMate`.
 
 ## Workflow
 
 - **No local `.git`.** GitHub holds all history. Publish with `tools\Publish.ps1 -Message "..."`, which uses a throwaway temp clone and runs the tests first.
-- **Layout:** the addon's own files (`VendorMate.toc` and the Lua files) sit at the top of the project, because that is what the release packager expects. `tests/`, `tools/` and `.github/` are development-only and are left out of the released zip by `.pkgmeta`.
-- **Testing in game:** `tools\Link-Addon.ps1` junctions this folder into the client's `Interface\AddOns` as `VendorMate`. Edits are live after `/reload`; a new file or a TOC change needs a full client restart.
+- **Layout:** the addon's own files (`JunkMate.toc` and the Lua files) sit at the top of the project, because that is what the release packager expects. `tests/`, `tools/` and `.github/` are development-only and are left out of the released zip by `.pkgmeta`.
+- **Testing in game:** `tools\Link-Addon.ps1` junctions this folder into the client's `Interface\AddOns` as `JunkMate`. Edits are live after `/reload`; a new file or a TOC change needs a full client restart.
 - **Client install:** `C:\Program Files (x86)\World of Warcraft\_forever_\` (`Wow.exe`, product `wowf`), the live client since launch (4 November 2026). The beta folder `_classic_beta_` was removed on 2026-11-02, and its saved data went with it.
 - **Tests:** `python tests/run.py` runs the addon in real Lua 5.1 (the `lupa` pip package) against a fake WoW API in `tests/wow_stub.lua`, loading the files the TOC lists. The tests run before every publish and again on GitHub. They prove the addon's own logic only; whether the real client behaves like the stub can only be checked in game. Three earlier bugs in sibling addons were wrong assumptions about the game that the fake shared, so anything that calls a game function for the first time is wrapped so a surprise cannot put an error on screen.
 - **Releases:** a tag starting with `v` runs `.github/workflows/release.yml`, which uses the BigWigs packager (it recognises this client and builds `-forever.zip` as game version 1.60.1). CurseForge and Wago uploads are skipped until their project IDs are in the TOC and their tokens are in the repository secrets.
@@ -37,3 +37,5 @@ Everything below, unless marked verified, comes from community sources during th
 - Secret values (Midnight combat restrictions) are active. In combat, `UnitHealth`, aura data, and some names and booleans can be secret: arithmetic, comparison, and printing fail. Guard with `issecretvalue`, and pass values straight to widgets (`StatusBar:SetValue`, `Cooldown:SetCooldownFromDurationObject`) instead of doing Lua math. Combat-log parsing is not available.
 - Check `InCombatLockdown()` before touching protected frames and defer to `PLAYER_REGEN_ENABLED`.
 - SavedVariables: initialise in `ADDON_LOADED`. Early beta builds reportedly wrote them but did not read them back; on build 70338 they are read back (confirmed in game 2026-10-11).
+
+- Renamed from VendorMate to JunkMate on 2026-11-07 (0.3.0), because a Retail addon called VendorMate already held the name on CurseForge. Saved data moved from `VendorMateDB` to `JunkMateDB`; the user's WTF file was copied over by hand.

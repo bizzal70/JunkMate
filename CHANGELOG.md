@@ -1,4 +1,8 @@
-# VendorMate
+# JunkMate
+
+## 0.3.0
+
+- **VendorMate is now JunkMate.** A Retail addon called VendorMate is already on CurseForge, so this one could not be listed there under that name. The slash command is now `/junkmate` (or `/jmate`), the folder is `JunkMate`, and the saved settings are `JunkMateDB`. Nothing else changes. Entries below this one use the old name.
 
 ## 0.2.0
 

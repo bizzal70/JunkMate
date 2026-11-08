@@ -27,7 +27,7 @@ local defaults = {
 }
 
 function ns.Print(msg)
-    print("|cffd9a066VendorMate|r: " .. tostring(msg))
+    print("|cffd9a066JunkMate|r: " .. tostring(msg))
 end
 
 -- A value the client may withhold cannot be compared or added up.
@@ -176,9 +176,9 @@ local function Describe()
         db.report and ", and says what it did" or ", silently")
 end
 
-SLASH_VENDORMATE1 = "/vendormate"
-SLASH_VENDORMATE2 = "/vmate"
-SlashCmdList.VENDORMATE = function(msg)
+SLASH_JUNKMATE1 = "/junkmate"
+SLASH_JUNKMATE2 = "/jmate"
+SlashCmdList.JUNKMATE = function(msg)
     local command = (msg or ""):lower():match("^%s*(%S*)")
     if command == "" or command == "options" then
         ns.ToggleOptions()
@@ -196,11 +196,11 @@ SlashCmdList.VENDORMATE = function(msg)
         ns.RefreshOptions()
         return
     else
-        ns.Print("/vendormate - open the options")
-        ns.Print("/vendormate junk - sell grey items when a vendor opens, on or off")
-        ns.Print("/vendormate repair - repair when a vendor who can opens, on or off")
-        ns.Print("/vendormate report - say in chat what was sold and repaired, on or off")
-        ns.Print("/vendormate worn - warn on screen when gear is wearing out, on or off")
+        ns.Print("/junkmate - open the options")
+        ns.Print("/junkmate junk - sell grey items when a vendor opens, on or off")
+        ns.Print("/junkmate repair - repair when a vendor who can opens, on or off")
+        ns.Print("/junkmate report - say in chat what was sold and repaired, on or off")
+        ns.Print("/junkmate worn - warn on screen when gear is wearing out, on or off")
         ns.Print("Hold Shift while opening a vendor to skip both that time.")
         return
     end
@@ -209,7 +209,7 @@ SlashCmdList.VENDORMATE = function(msg)
 end
 
 -- Entry in the minimap's addon list.
-function VendorMate_OnAddonCompartmentClick()
+function JunkMate_OnAddonCompartmentClick()
     ns.ToggleOptions()
 end
 
@@ -220,13 +220,13 @@ frame:RegisterEvent("MERCHANT_CLOSED")
 frame:SetScript("OnEvent", function(self, event, loaded)
     if event == "ADDON_LOADED" then
         if loaded ~= addonName then return end
-        VendorMateDB = VendorMateDB or {}
+        JunkMateDB = JunkMateDB or {}
         for key, value in pairs(defaults) do
-            if VendorMateDB[key] == nil then
-                VendorMateDB[key] = value
+            if JunkMateDB[key] == nil then
+                JunkMateDB[key] = value
             end
         end
-        ns.db = VendorMateDB
+        ns.db = JunkMateDB
         self:UnregisterEvent("ADDON_LOADED")
     elseif not ns.db then
         return

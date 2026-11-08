@@ -15,7 +15,7 @@
 #>
 param(
     [string]$Message = "Update",
-    [string]$Repo = "bizzal70/VendorMate",
+    [string]$Repo = "bizzal70/JunkMate",
     [string]$Tag,
     [switch]$SkipTests
 )
@@ -34,7 +34,7 @@ if (-not $SkipTests) {
     Write-Host "Tests passed."
 }
 
-$tmp = Join-Path $env:TEMP ("vendormate-publish-" + [guid]::NewGuid().ToString("N"))
+$tmp = Join-Path $env:TEMP ("junkmate-publish-" + [guid]::NewGuid().ToString("N"))
 
 try {
     gh repo clone $Repo $tmp
