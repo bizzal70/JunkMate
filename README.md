@@ -21,7 +21,7 @@ It also **warns you when your gear is wearing out**. While your most worn piece 
 
 ## Options
 
-Type `/junkmate` to open the options, or use the addon's entry in the minimap's addon list.
+Type `/junkmate` (or `/jmate`) to open the options, or use the addon's entry in the minimap's addon list.
 
 | Setting | Command |
 |---|---|
