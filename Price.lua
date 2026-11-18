@@ -4,7 +4,8 @@ local addonName, ns = ...
 -- for a stack what the whole stack is worth, so deciding between vendor,
 -- auction house and mailing to a bank alt takes one look. Items a vendor
 -- will not buy say so. Where the game already shows its own "Sell Price"
--- line on the tooltip, JunkMate adds nothing, so the price never shows twice.
+-- line (Forever does, for the whole stack), JunkMate adds only the price of
+-- one, for a stack, so the price never shows twice.
 --
 -- Uses the game's tooltip post-call (TooltipDataProcessor), the supported
 -- way to add lines, and only on the main tooltip and a clicked link's.
@@ -68,8 +69,19 @@ function ns.AddPrice(tooltip, data)
     if not ns.db or not ns.db.priceTooltip then return end
     local itemID = data and data.id
     if not Usable(itemID) or type(itemID) ~= "number" then return end
-    if GameShowsPrice(data) then return end
-    local text, unsellable = ns.PriceLine(itemID, StackCount(tooltip))
+    local count = StackCount(tooltip)
+    if GameShowsPrice(data) then
+        -- Forever's own line is the whole stack's price: for a stack, add
+        -- what one is worth, to compare items in stacks of different sizes.
+        local price = ns.SellPrice(itemID)
+        if count > 1 and price and price > 0 then
+            -- Other addons' lines (as AltGlance's) can come between, so it says what it is.
+            tooltip:AddLine("Sell price each: " .. MoneyText(price), 0.8, 0.8, 0.8)
+            tooltip:Show()
+        end
+        return
+    end
+    local text, unsellable = ns.PriceLine(itemID, count)
     if not text then return end
     if unsellable then
         tooltip:AddLine(text, 0.6, 0.6, 0.6)

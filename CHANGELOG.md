@@ -1,5 +1,9 @@
 # JunkMate
 
+## 0.4.1
+
+- Forever's own tooltip already shows the sell price of the whole stack. For a stack, JunkMate now adds what one is worth ("Sell price each: 3c"), to compare items in stacks of different sizes.
+
 ## 0.4.0
 
 - **Vendor price on item tooltips:** hover over an item to see what it sells for at a vendor, and for a stack what the whole stack is worth ("Vendor: 13c each, 20 for 2s 60c"). Items a vendor will not buy say so. If the game already shows its own sell price, JunkMate adds nothing. Turn it off with `/junkmate price` or in the options.

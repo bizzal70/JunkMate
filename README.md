@@ -19,7 +19,7 @@ Hold **Shift** while opening a vendor to skip both that time.
 
 It also **warns you when your gear is wearing out**. While your most worn piece is below 25% durability, a line stays on screen ("Gear worn: 18% left"), with one line in chat when it first drops below. It clears once you repair. You can drag the line to wherever you like, and set the level to 10%, 25% or 50%.
 
-**Vendor prices on tooltips:** hover over any item to see what it sells for at a vendor, and for a stack what the whole stack is worth ("Vendor: 13c each, 20 for 2s 60c"). Items a vendor will not buy say so. Handy for deciding what to vendor, auction or mail to your bank alt. If the game already shows its own sell price, JunkMate adds nothing.
+**Vendor prices on tooltips:** hover over any item to see what it sells for at a vendor, and for a stack what the whole stack is worth ("Vendor: 13c each, 20 for 2s 60c"). Items a vendor will not buy say so. Handy for deciding what to vendor, auction or mail to your bank alt. Forever's own tooltip already shows the sell price of the whole stack; there JunkMate adds only what one is worth ("Sell price each: 3c"), for stacks.
 
 ## Options
 
