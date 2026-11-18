@@ -24,6 +24,8 @@ local defaults = {
     -- Whether to warn when gear is wearing out, and below what percentage.
     durabilityWarn = true,
     durabilityLevel = 25,
+    -- Vendor price on item tooltips (Price.lua).
+    priceTooltip = true,
 }
 
 function ns.Print(msg)
@@ -189,6 +191,11 @@ SlashCmdList.JUNKMATE = function(msg)
         ns.db.repair = not ns.db.repair
     elseif command == "report" then
         ns.db.report = not ns.db.report
+    elseif command == "price" then
+        ns.db.priceTooltip = not ns.db.priceTooltip
+        ns.Print("Vendor prices on item tooltips are " .. (ns.db.priceTooltip and "on." or "off."))
+        ns.RefreshOptions()
+        return
     elseif command == "worn" then
         ns.db.durabilityWarn = not ns.db.durabilityWarn
         ns.UpdateDurability()
@@ -201,6 +208,7 @@ SlashCmdList.JUNKMATE = function(msg)
         ns.Print("/junkmate repair - repair when a vendor who can opens, on or off")
         ns.Print("/junkmate report - say in chat what was sold and repaired, on or off")
         ns.Print("/junkmate worn - warn on screen when gear is wearing out, on or off")
+        ns.Print("/junkmate price - vendor prices on item tooltips, on or off")
         ns.Print("Hold Shift while opening a vendor to skip both that time.")
         return
     end

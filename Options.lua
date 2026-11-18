@@ -75,7 +75,7 @@ end
 
 local function CreateWindow()
     window = CreateFrame("Frame", addonName .. "Options", UIParent)
-    window:SetSize(328, 232)
+    window:SetSize(328, 264)
     window:SetPoint("CENTER")
     window:SetFrameStrata("HIGH")
     window:SetToplevel(true)
@@ -136,6 +136,11 @@ local function CreateWindow()
             end
             ns.db.durabilityLevel = nextLevel
         end)
+
+    CreateRow(window, -200, true,
+        function() return "Show vendor prices on item tooltips" end,
+        function() return ns.db.priceTooltip end,
+        function() ns.db.priceTooltip = not ns.db.priceTooltip end)
 
     local hint = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("BOTTOMLEFT", 16, 12)

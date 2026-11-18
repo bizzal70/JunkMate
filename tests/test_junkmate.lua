@@ -181,7 +181,7 @@ local rows = {}
 for _, f in ipairs(Frames()) do
     if rawget(f, "Refresh") and f.__scripts.OnClick then rows[#rows + 1] = f end
 end
-check(#rows == 5, "the options have five controls")
+check(#rows == 6, "the options have six controls")
 for index, key in ipairs({ "sellJunk", "repair", "report", "durabilityWarn" }) do
     rows[index].__scripts.OnClick(rows[index])
     local off = not ns.db[key]
@@ -196,3 +196,35 @@ check(ns.db.durabilityLevel == 25, "and comes back round")
 JunkMate_OnAddonCompartmentClick()
 check(not JunkMateOptions:IsShown(), "the minimap addon list entry toggles the options")
 SlashCmdList.JUNKMATE("help")
+
+-- Vendor price on item tooltips.
+local priceHook
+TooltipDataProcessor = { AddTooltipPostCall = function(kind, hook) if kind == "item" then priceHook = hook end end }
+Enum.TooltipDataType = { Item = "item" }
+Enum.TooltipDataLineType = { SellPrice = 11 }
+local PRICES = { [2589] = 13, [6948] = 0 }
+C_Item = C_Item or {}
+C_Item.GetItemInfo = function(id)
+    if PRICES[id] == nil then return nil end
+    return "item", "link", 1, 5, 1, "Trade Goods", "Cloth", 20, "", 0, PRICES[id]
+end
+Fire("PLAYER_LOGIN")
+local lines = {}
+rawset(GameTooltip, "AddLine", function(_, text) lines[#lines + 1] = text end)
+local owner = {}
+rawset(GameTooltip, "GetOwner", function() return owner end)
+local function Hover(id, count, data)
+    lines = {}
+    owner = { count = count }
+    priceHook(GameTooltip, data or { id = id, lines = {} })
+    return table.concat(lines, "|")
+end
+check(Hover(2589, 1) == "Vendor: 13c each", "a single item shows what it sells for")
+check(Hover(2589, 20) == "Vendor: 13c each, 20 for 2s 60c", "a stack shows its whole worth too: " .. Hover(2589, 20))
+check(Hover(6948, 1) == "Vendor: can't be sold", "an item vendors will not buy says so")
+check(Hover(12345, 1) == "", "an item the game has not loaded yet adds nothing")
+check(Hover(2589, 1, { id = 2589, lines = { { type = 11 } } }) == "", "if the game shows its own sell price, JunkMate adds nothing")
+SlashCmdList.JUNKMATE("price")
+check(Hover(2589, 1) == "" and not ns.db.priceTooltip, "/junkmate price turns it off")
+SlashCmdList.JUNKMATE("price")
+check(Hover(2589, 1) ~= "", "and on again")
