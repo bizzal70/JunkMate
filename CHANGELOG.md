@@ -1,5 +1,10 @@
 # JunkMate
 
+## 0.5.0
+
+- **Minimap button:** JunkMate now has its own button on the minimap rim. Click it to open the options; drag it to move it. Hide it with `/junkmate button` or in the options.
+- **A red ! for worn gear:** while your gear is below the warning level, a red ! pulses on the minimap button. Click it and the top of the window says how worn your gear is and which piece ("Gear worn: 18% left on [Chestguard]. Time to repair."). With nothing worn it says your gear is fine.
+
 ## 0.4.1
 
 - Forever's own tooltip already shows the sell price of the whole stack. For a stack, JunkMate now adds what one is worth ("Sell price each: 3c"), to compare items in stacks of different sizes.

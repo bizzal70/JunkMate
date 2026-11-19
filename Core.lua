@@ -26,6 +26,9 @@ local defaults = {
     durabilityLevel = 25,
     -- Vendor price on item tooltips (Price.lua).
     priceTooltip = true,
+    -- The minimap button (MinimapButton.lua), and where on the rim it sits.
+    minimapButton = true,
+    minimapAngle = 1.9,
 }
 
 function ns.Print(msg)
@@ -196,6 +199,12 @@ SlashCmdList.JUNKMATE = function(msg)
         ns.Print("Vendor prices on item tooltips are " .. (ns.db.priceTooltip and "on." or "off."))
         ns.RefreshOptions()
         return
+    elseif command == "button" then
+        ns.db.minimapButton = not ns.db.minimapButton
+        ns.UpdateMinimapButton()
+        ns.Print("Minimap button " .. (ns.db.minimapButton and "shown." or "hidden."))
+        ns.RefreshOptions()
+        return
     elseif command == "worn" then
         ns.db.durabilityWarn = not ns.db.durabilityWarn
         ns.UpdateDurability()
@@ -209,6 +218,7 @@ SlashCmdList.JUNKMATE = function(msg)
         ns.Print("/junkmate report - say in chat what was sold and repaired, on or off")
         ns.Print("/junkmate worn - warn on screen when gear is wearing out, on or off")
         ns.Print("/junkmate price - vendor prices on item tooltips, on or off")
+        ns.Print("/junkmate button - show or hide the minimap button")
         ns.Print("Hold Shift while opening a vendor to skip both that time.")
         return
     end

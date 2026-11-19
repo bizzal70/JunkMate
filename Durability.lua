@@ -16,20 +16,45 @@ local function Usable(value)
     return value ~= nil and not (issecretvalue and issecretvalue(value))
 end
 
--- How worn the most worn piece of gear is, as a percentage left; nil if
--- nothing equipped has durability.
+-- How worn the most worn piece of gear is, as a percentage left, and its
+-- slot; nil if nothing equipped has durability.
 function ns.LowestDurability()
-    local lowest
+    local lowest, lowestSlot
     for slot = FIRST_SLOT, LAST_SLOT do
         local current, maximum = GetInventoryItemDurability(slot)
         if Usable(current) and Usable(maximum) and maximum > 0 then
             local percent = current / maximum * 100
             if not lowest or percent < lowest then
-                lowest = percent
+                lowest, lowestSlot = percent, slot
             end
         end
     end
-    return lowest
+    return lowest, lowestSlot
+end
+
+-- One line on the gear's condition for the options window: text and colour.
+function ns.GearStatus()
+    local ok, lowest, slot = pcall(ns.LowestDurability)
+    if not ok or not lowest then
+        return "Gear: nothing equipped is wearing out.", 0.6, 0.6, 0.6
+    end
+    local percent = math.floor(lowest + 0.5)
+    local item
+    if slot and GetInventoryItemLink then
+        local found, link = pcall(GetInventoryItemLink, "player", slot)
+        if found and Usable(link) and type(link) == "string" then item = link end
+    end
+    if ns.worn then
+        local text = ("Gear worn: %d%% left"):format(percent)
+        if item then text = text .. " on " .. item end
+        if percent <= 10 then
+            return text .. ". Repair before it breaks!", 1, 0.25, 0.25
+        end
+        return text .. ". Time to repair.", 1, 0.65, 0.2
+    end
+    local text = ("Gear is fine: the most worn piece has %d%% left"):format(percent)
+    if item and percent < 100 then text = text .. " (" .. item .. ")" end
+    return text .. ".", 0.5, 0.9, 0.5
 end
 
 local notice = CreateFrame("Frame", addonName .. "DurabilityNotice", UIParent)
@@ -54,6 +79,13 @@ background:SetColorTexture(0, 0, 0, 0.55)
 local text = notice:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 text:SetPoint("CENTER")
 
+-- Passes the gear's condition on to the minimap button's "!" and the
+-- options window.
+function ns.ShowWorn()
+    if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end
+    if ns.RefreshOptions then ns.RefreshOptions() end
+end
+
 -- Shows, updates or hides the warning to match the gear's condition.
 function ns.UpdateDurability()
     local db = ns.db
@@ -61,11 +93,15 @@ function ns.UpdateDurability()
     local lowest = db.durabilityWarn and ns.LowestDurability() or nil
     if not lowest or lowest >= db.durabilityLevel then
         warned = false
+        ns.worn = nil
         notice:Hide()
+        ns.ShowWorn()
         return
     end
 
     local percent = math.floor(lowest + 0.5)
+    ns.worn = percent
+    ns.ShowWorn()
     text:SetText(("Gear worn: %d%% left"):format(percent))
     -- Orange while there is some way to go, red when it is about to break.
     if percent <= 10 then

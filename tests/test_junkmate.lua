@@ -31,6 +31,7 @@ C_Container = {
 -- slot -> { current, maximum } durability; a slot left out has none
 GEAR = {}
 GetInventoryItemDurability = function(slot) local g = GEAR[slot]; if g then return g[1], g[2] end end
+GetInventoryItemLink = function(_, slot) if slot == 5 then return "[Chestguard]" end end
 
 local ns = LoadAddon(ADDON_DIR, "JunkMate")
 local function check(cond, what) if not cond then error("CHECK FAILED: " .. what, 2) end; io.write("pass  ", what, "\n") end
@@ -154,12 +155,16 @@ for _, f in ipairs(Frames()) do
 end
 check(notice.__shown and label.__text == "Gear worn: 18% left", "the most worn piece dropping below the level shows a line on screen")
 check(#PRINTED == printedBefore + 1 and PRINTED[#PRINTED]:find("down to 18%", 1, true) ~= nil, "and says so once in chat")
+check(ns.worn == 18 and ns.wornBadge.__shown and JunkMateMinimapButton.__shown, "and puts a ! on the minimap button")
+check(ns.GearStatus():find("Gear worn: 18% left on [Chestguard]", 1, true) ~= nil, "the options say which piece is worn: " .. ns.GearStatus())
 GEAR[5] = { 12, 100 }
 Fire("UPDATE_INVENTORY_DURABILITY")
 check(label.__text == "Gear worn: 12% left" and #PRINTED == printedBefore + 1, "as it wears further the line updates, without repeating in chat")
 GEAR[5] = { 100, 100 }
 Fire("MERCHANT_CLOSED")
 check(not notice.__shown, "repairing clears the warning")
+check(not ns.worn and not ns.wornBadge.__shown, "and the ! on the minimap button")
+check(ns.GearStatus():find("Gear is fine: the most worn piece has 60%", 1, true) ~= nil, "the options then say the gear is fine: " .. ns.GearStatus())
 GEAR[5] = { 20, 100 }
 Fire("UPDATE_INVENTORY_DURABILITY")
 check(notice.__shown and #PRINTED == printedBefore + 2, "and it warns afresh the next time")
@@ -181,7 +186,20 @@ local rows = {}
 for _, f in ipairs(Frames()) do
     if rawget(f, "Refresh") and f.__scripts.OnClick then rows[#rows + 1] = f end
 end
-check(#rows == 6, "the options have six controls")
+check(#rows == 7, "the options have seven controls")
+local statusLine
+for _, f in ipairs(Frames()) do
+    if rawget(f, "__text") and f.__text:find("^Gear") then statusLine = f end
+end
+check(statusLine ~= nil, "the options show the gear's condition: " .. (statusLine and statusLine.__text or "none"))
+rows[7].__scripts.OnClick(rows[7])
+check(not ns.db.minimapButton and not JunkMateMinimapButton.__shown, "the last row hides the minimap button")
+SlashCmdList.JUNKMATE("button")
+check(ns.db.minimapButton and JunkMateMinimapButton.__shown, "and /junkmate button shows it again")
+JunkMateMinimapButton.__scripts.OnClick(JunkMateMinimapButton)
+check(not JunkMateOptions:IsShown(), "clicking the minimap button toggles the options")
+JunkMateMinimapButton.__scripts.OnClick(JunkMateMinimapButton)
+check(JunkMateOptions:IsShown(), "and opens them again")
 for index, key in ipairs({ "sellJunk", "repair", "report", "durabilityWarn" }) do
     rows[index].__scripts.OnClick(rows[index])
     local off = not ns.db[key]

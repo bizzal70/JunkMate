@@ -6,6 +6,7 @@ local addonName, ns = ...
 local ACCENT_R, ACCENT_G, ACCENT_B = 0.85, 0.63, 0.40
 
 local window
+local status
 local controls = {}
 
 local function Fill(frame, r, g, b, a)
@@ -75,7 +76,7 @@ end
 
 local function CreateWindow()
     window = CreateFrame("Frame", addonName .. "Options", UIParent)
-    window:SetSize(328, 264)
+    window:SetSize(328, 334)
     window:SetPoint("CENTER")
     window:SetFrameStrata("HIGH")
     window:SetToplevel(true)
@@ -106,24 +107,31 @@ local function CreateWindow()
     closeLabel:SetText("x")
     close:SetScript("OnClick", function() window:Hide() end)
 
-    CreateRow(window, -46, true,
+    -- The gear's condition, so the minimap button's "!" has an answer here.
+    status = window:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    status:SetPoint("TOPLEFT", 16, -40)
+    status:SetWidth(296)
+    status:SetJustifyH("LEFT")
+    status:SetWordWrap(true)
+
+    CreateRow(window, -76, true,
         function() return "Sell junk when a vendor opens" end,
         function() return ns.db.sellJunk end,
         function() ns.db.sellJunk = not ns.db.sellJunk end)
-    CreateRow(window, -74, true,
+    CreateRow(window, -104, true,
         function() return "Repair when a vendor who can opens" end,
         function() return ns.db.repair end,
         function() ns.db.repair = not ns.db.repair end)
-    CreateRow(window, -102, true,
+    CreateRow(window, -132, true,
         function() return "Say in chat what was sold and repaired" end,
         function() return ns.db.report end,
         function() ns.db.report = not ns.db.report end)
-    CreateRow(window, -138, true,
+    CreateRow(window, -168, true,
         function() return "Warn on screen when gear is wearing out" end,
         function() return ns.db.durabilityWarn end,
         function() ns.db.durabilityWarn = not ns.db.durabilityWarn end)
     -- Cycles through the levels the warning can be set to.
-    CreateRow(window, -168, false,
+    CreateRow(window, -198, false,
         function() return ("Warn below %d%% durability"):format(ns.db.durabilityLevel) end,
         nil,
         function()
@@ -137,10 +145,17 @@ local function CreateWindow()
             ns.db.durabilityLevel = nextLevel
         end)
 
-    CreateRow(window, -200, true,
+    CreateRow(window, -230, true,
         function() return "Show vendor prices on item tooltips" end,
         function() return ns.db.priceTooltip end,
         function() ns.db.priceTooltip = not ns.db.priceTooltip end)
+    CreateRow(window, -258, true,
+        function() return "Show the minimap button" end,
+        function() return ns.db.minimapButton end,
+        function()
+            ns.db.minimapButton = not ns.db.minimapButton
+            ns.UpdateMinimapButton()
+        end)
 
     local hint = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("BOTTOMLEFT", 16, 12)
@@ -150,6 +165,11 @@ end
 function ns.RefreshOptions()
     for _, control in ipairs(controls) do
         control.Refresh()
+    end
+    if status then
+        local text, r, g, b = ns.GearStatus()
+        status:SetText(text)
+        status:SetTextColor(r, g, b)
     end
 end
 
