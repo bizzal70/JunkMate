@@ -179,6 +179,51 @@ check(pcall(Fire, "UPDATE_INVENTORY_DURABILITY"), "a surprise from the game whil
 GetInventoryItemDurability = function(slot) local g = GEAR[slot]; if g then return g[1], g[2] end end
 GEAR = {}; Fire("UPDATE_INVENTORY_DURABILITY")
 
+-- Bags nearly full. A bag's list holds { quality = } for an item, false for an empty slot.
+local function Fill(bag, used, free)
+    BAGS[bag] = {}
+    for i = 1, used do BAGS[bag][i] = { quality = 1 } end
+    for i = used + 1, used + free do BAGS[bag][i] = false end
+end
+check(ns.db.bagWarn and ns.db.bagLevel == 4, "the bags warning starts on, at 4 free slots")
+Fill(0, 13, 3)
+local before = #PRINTED
+Fire("BAG_UPDATE_DELAYED")
+check(ns.bagsLow == 3 and PRINTED[#PRINTED]:find("Only 3 bag slots left.", 1, true) ~= nil, "3 free slots warns in chat: " .. tostring(PRINTED[#PRINTED]))
+check(ns.wornBadge.__shown, "and lights the minimap button's !")
+Fire("BAG_UPDATE_DELAYED")
+check(#PRINTED == before + 1, "it says so once, not on every change")
+Fill(0, 16, 0)
+Fire("BAG_UPDATE_DELAYED")
+check(ns.bagsLow == 0 and PRINTED[#PRINTED]:find("bags are full", 1, true) ~= nil and #PRINTED == before + 2, "and once more when the bags are full")
+check(select(1, ns.BagStatus()):find("Bags full: 0 of 16 slots free", 1, true) ~= nil, "the options say the bags are full: " .. ns.BagStatus())
+Fill(0, 6, 10)
+Fire("BAG_UPDATE_DELAYED")
+check(ns.bagsLow == nil and not ns.wornBadge.__shown, "with room again the ! goes away")
+check(select(1, ns.BagStatus()) == "Bags: 10 of 16 slots free.", "and the options show the free slots: " .. ns.BagStatus())
+Fill(0, 14, 2)
+Fire("BAG_UPDATE_DELAYED")
+check(#PRINTED == before + 3, "and it warns afresh the next time")
+-- The game's own count, where it has one; a herb bag's free slots do not count.
+Fill(1, 0, 20)
+C_Container.GetContainerNumFreeSlots = function(bag)
+    local free = 0
+    for _, item in ipairs(BAGS[bag]) do if not item then free = free + 1 end end
+    return free, bag == 1 and 32 or 0
+end
+Fire("BAG_UPDATE_DELAYED")
+check(ns.bagsLow == 2, "a herb bag's empty slots do not count as room")
+SlashCmdList.JUNKMATE("bags")
+check(not ns.db.bagWarn and ns.bagsLow == nil and not ns.wornBadge.__shown, "/junkmate bags turns the warning off")
+SlashCmdList.JUNKMATE("bags")
+check(ns.db.bagWarn and ns.bagsLow == 2, "and back on")
+local numFree = C_Container.GetContainerNumFreeSlots
+C_Container.GetContainerNumFreeSlots = function() error("something this client does differently") end
+check(pcall(Fire, "BAG_UPDATE_DELAYED"), "a surprise from the game while checking bags does not raise an error")
+C_Container.GetContainerNumFreeSlots = numFree
+Fill(0, 2, 14); Fill(1, 0, 0)
+Fire("BAG_UPDATE_DELAYED")
+
 -- options window
 SlashCmdList.JUNKMATE("")
 check(JunkMateOptions:IsShown(), "/junkmate opens the options")
@@ -186,13 +231,25 @@ local rows = {}
 for _, f in ipairs(Frames()) do
     if rawget(f, "Refresh") and f.__scripts.OnClick then rows[#rows + 1] = f end
 end
-check(#rows == 7, "the options have seven controls")
+check(#rows == 9, "the options have nine controls")
 local statusLine
 for _, f in ipairs(Frames()) do
     if rawget(f, "__text") and f.__text:find("^Gear") then statusLine = f end
 end
 check(statusLine ~= nil, "the options show the gear's condition: " .. (statusLine and statusLine.__text or "none"))
+local bagLine
+for _, f in ipairs(Frames()) do
+    if rawget(f, "__text") and f.__text:find("^Bags") then bagLine = f end
+end
+check(bagLine ~= nil and bagLine.__text == "Bags: 14 of 16 slots free.", "and the bags' free slots: " .. (bagLine and bagLine.__text or "none"))
 rows[7].__scripts.OnClick(rows[7])
+check(ns.db.bagLevel == 8, "the bags row steps the slots up")
+rows[7].__scripts.OnClick(rows[7]); rows[7].__scripts.OnClick(rows[7])
+check(ns.db.bagLevel == 4, "and comes back round")
+rows[6].__scripts.OnClick(rows[6])
+check(not ns.db.bagWarn, "the bags switch turns it off")
+rows[6].__scripts.OnClick(rows[6])
+rows[9].__scripts.OnClick(rows[9])
 check(not ns.db.minimapButton and not JunkMateMinimapButton.__shown, "the last row hides the minimap button")
 SlashCmdList.JUNKMATE("button")
 check(ns.db.minimapButton and JunkMateMinimapButton.__shown, "and /junkmate button shows it again")

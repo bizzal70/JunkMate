@@ -1,5 +1,11 @@
 # JunkMate
 
+## 0.6.0
+
+- **Bags nearly full warning:** when you are down to your last 4 bag slots, the ! on JunkMate's minimap button lights up yellow, and one line in chat says how many are left. Once the bags are completely full the ! turns red and chat says so once more. Both clear as soon as there is room again.
+- The top of the options window now shows your bags' free slots under the gear's condition. Set the warning to 2, 4 or 8 free slots, or turn it off there or with `/junkmate bags`.
+- Only ordinary bags count: a herb bag, mining bag or quiver holds just one kind of thing, so its free slots are left out.
+
 ## 0.5.0
 
 - **Minimap button:** JunkMate now has its own button on the minimap rim. Click it to open the options; drag it to move it. Hide it with `/junkmate button` or in the options.

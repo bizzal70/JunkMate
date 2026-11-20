@@ -2,7 +2,8 @@ local addonName, ns = ...
 
 -- A button on the rim of the minimap that opens the options. While gear is
 -- worn below the warning level, a red "!" pulses on it, and the window it
--- opens says which piece and how worn.
+-- opens says which piece and how worn. While the bags are nearly full the
+-- "!" pulses too, yellow if the gear is fine.
 
 local button = CreateFrame("Button", addonName .. "MinimapButton", Minimap)
 button:SetSize(31, 31)
@@ -80,14 +81,21 @@ button:SetScript("OnEnter", function(self)
     if ns.worn then
         GameTooltip:AddLine(("Gear worn: %d%% left"):format(ns.worn), 1, 0.3, 0.25)
     end
-    GameTooltip:AddLine("Click: options and gear condition", 1, 1, 1)
+    if ns.bagsLow then
+        if ns.bagsLow == 0 then
+            GameTooltip:AddLine("Bags full", 1, 0.3, 0.25)
+        else
+            GameTooltip:AddLine(("Bags nearly full: %d slot%s left"):format(ns.bagsLow, ns.bagsLow == 1 and "" or "s"), 1, 0.82, 0.2)
+        end
+    end
+    GameTooltip:AddLine("Click: options, gear and bags", 1, 1, 1)
     GameTooltip:AddLine("Drag: move this button", 0.7, 0.7, 0.7)
     GameTooltip:Show()
 end)
 button:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
 -- Shows or hides the button as the setting says, with the "!" while gear
--- is worn.
+-- is worn (red) or the bags are nearly full (yellow; red once full).
 function ns.UpdateMinimapButton()
     if not ns.db then return end
     if ns.db.minimapButton then
@@ -96,7 +104,12 @@ function ns.UpdateMinimapButton()
     else
         button:Hide()
     end
-    if ns.worn then
+    if ns.worn or ns.bagsLow then
+        if ns.worn or ns.bagsLow == 0 then
+            mark:SetTextColor(1, 0.15, 0.1)
+        else
+            mark:SetTextColor(1, 0.82, 0.1)
+        end
         badge:Show()
         if not pulse:IsPlaying() then pulse:Play() end
     else

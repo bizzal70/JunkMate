@@ -24,6 +24,9 @@ local defaults = {
     -- Whether to warn when gear is wearing out, and below what percentage.
     durabilityWarn = true,
     durabilityLevel = 25,
+    -- Whether to warn when the bags are nearly full, and at how many free slots.
+    bagWarn = true,
+    bagLevel = 4,
     -- Vendor price on item tooltips (Price.lua).
     priceTooltip = true,
     -- The minimap button (MinimapButton.lua), and where on the rim it sits.
@@ -205,6 +208,12 @@ SlashCmdList.JUNKMATE = function(msg)
         ns.Print("Minimap button " .. (ns.db.minimapButton and "shown." or "hidden."))
         ns.RefreshOptions()
         return
+    elseif command == "bags" then
+        ns.db.bagWarn = not ns.db.bagWarn
+        pcall(ns.UpdateBags)
+        ns.Print("The bags-nearly-full warning is " .. (ns.db.bagWarn and ("on, at %d free slots or fewer."):format(ns.db.bagLevel) or "off."))
+        ns.RefreshOptions()
+        return
     elseif command == "worn" then
         ns.db.durabilityWarn = not ns.db.durabilityWarn
         ns.UpdateDurability()
@@ -217,6 +226,7 @@ SlashCmdList.JUNKMATE = function(msg)
         ns.Print("/junkmate repair - repair when a vendor who can opens, on or off")
         ns.Print("/junkmate report - say in chat what was sold and repaired, on or off")
         ns.Print("/junkmate worn - warn on screen when gear is wearing out, on or off")
+        ns.Print("/junkmate bags - warn when your bags are nearly full, on or off")
         ns.Print("/junkmate price - vendor prices on item tooltips, on or off")
         ns.Print("/junkmate button - show or hide the minimap button")
         ns.Print("Hold Shift while opening a vendor to skip both that time.")

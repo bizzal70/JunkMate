@@ -6,7 +6,7 @@ local addonName, ns = ...
 local ACCENT_R, ACCENT_G, ACCENT_B = 0.85, 0.63, 0.40
 
 local window
-local status
+local status, bagStatus
 local controls = {}
 
 local function Fill(frame, r, g, b, a)
@@ -68,6 +68,7 @@ local function CreateRow(parent, y, isCheckbox, getText, isTicked, onClick)
     row:SetScript("OnClick", function()
         onClick()
         ns.UpdateDurability()
+        if ns.UpdateBags then pcall(ns.UpdateBags) end
         ns.RefreshOptions()
     end)
     controls[#controls + 1] = row
@@ -76,7 +77,7 @@ end
 
 local function CreateWindow()
     window = CreateFrame("Frame", addonName .. "Options", UIParent)
-    window:SetSize(328, 334)
+    window:SetSize(328, 420)
     window:SetPoint("CENTER")
     window:SetFrameStrata("HIGH")
     window:SetToplevel(true)
@@ -113,25 +114,30 @@ local function CreateWindow()
     status:SetWidth(296)
     status:SetJustifyH("LEFT")
     status:SetWordWrap(true)
+    -- And the bags' free slots, just under it.
+    bagStatus = window:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    bagStatus:SetPoint("TOPLEFT", status, "BOTTOMLEFT", 0, -4)
+    bagStatus:SetWidth(296)
+    bagStatus:SetJustifyH("LEFT")
 
-    CreateRow(window, -76, true,
+    CreateRow(window, -100, true,
         function() return "Sell junk when a vendor opens" end,
         function() return ns.db.sellJunk end,
         function() ns.db.sellJunk = not ns.db.sellJunk end)
-    CreateRow(window, -104, true,
+    CreateRow(window, -128, true,
         function() return "Repair when a vendor who can opens" end,
         function() return ns.db.repair end,
         function() ns.db.repair = not ns.db.repair end)
-    CreateRow(window, -132, true,
+    CreateRow(window, -156, true,
         function() return "Say in chat what was sold and repaired" end,
         function() return ns.db.report end,
         function() ns.db.report = not ns.db.report end)
-    CreateRow(window, -168, true,
+    CreateRow(window, -192, true,
         function() return "Warn on screen when gear is wearing out" end,
         function() return ns.db.durabilityWarn end,
         function() ns.db.durabilityWarn = not ns.db.durabilityWarn end)
     -- Cycles through the levels the warning can be set to.
-    CreateRow(window, -198, false,
+    CreateRow(window, -222, false,
         function() return ("Warn below %d%% durability"):format(ns.db.durabilityLevel) end,
         nil,
         function()
@@ -145,11 +151,30 @@ local function CreateWindow()
             ns.db.durabilityLevel = nextLevel
         end)
 
-    CreateRow(window, -230, true,
+    CreateRow(window, -254, true,
+        function() return "Warn when your bags are nearly full" end,
+        function() return ns.db.bagWarn end,
+        function() ns.db.bagWarn = not ns.db.bagWarn end)
+    -- Cycles through the numbers of free slots the warning can be set to.
+    CreateRow(window, -284, false,
+        function() return ("Warn at %d free bag slots or fewer"):format(ns.db.bagLevel) end,
+        nil,
+        function()
+            local levels = ns.BAG_LEVELS
+            local nextLevel = levels[1]
+            for index, level in ipairs(levels) do
+                if level == ns.db.bagLevel then
+                    nextLevel = levels[index % #levels + 1]
+                end
+            end
+            ns.db.bagLevel = nextLevel
+        end)
+
+    CreateRow(window, -316, true,
         function() return "Show vendor prices on item tooltips" end,
         function() return ns.db.priceTooltip end,
         function() ns.db.priceTooltip = not ns.db.priceTooltip end)
-    CreateRow(window, -258, true,
+    CreateRow(window, -344, true,
         function() return "Show the minimap button" end,
         function() return ns.db.minimapButton end,
         function()
@@ -170,6 +195,11 @@ function ns.RefreshOptions()
         local text, r, g, b = ns.GearStatus()
         status:SetText(text)
         status:SetTextColor(r, g, b)
+    end
+    if bagStatus and ns.BagStatus then
+        local text, r, g, b = ns.BagStatus()
+        bagStatus:SetText(text)
+        bagStatus:SetTextColor(r, g, b)
     end
 end
 

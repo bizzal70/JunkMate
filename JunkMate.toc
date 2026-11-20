@@ -1,8 +1,8 @@
 ## Interface: 16001
 ## Title: JunkMate
-## Notes: Sells your junk and repairs your gear whenever you open a vendor, warns when gear is wearing out, and shows vendor prices on tooltips. Type /junkmate.
+## Notes: Sells your junk and repairs your gear whenever you open a vendor, warns when gear is wearing out or your bags are nearly full, and shows vendor prices on tooltips. Type /junkmate.
 ## Author: bizzal70
-## Version: 0.5.0
+## Version: 0.6.0
 ## X-Curse-Project-ID: 1790702
 ## SavedVariables: JunkMateDB
 ## IconTexture: Interface\Icons\INV_Misc_Coin_02
@@ -10,6 +10,7 @@
 
 Core.lua
 Durability.lua
+Bags.lua
 Price.lua
 Options.lua
 MinimapButton.lua
