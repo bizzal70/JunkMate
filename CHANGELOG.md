@@ -1,5 +1,9 @@
 # JunkMate
 
+## 0.6.3
+
+- **Worn gear has its own sign:** a pulsing blacksmith's hammer in the bottom-left corner of the minimap button, so it never looks like the bag warning (the yellow number, or the flashing red ! when full, top right). Both can show at once.
+
 ## 0.6.2
 
 - The minimap button now shows **how many bag slots are left** (a yellow 3, 2, 1) while your bags are getting full, and a **flashing red !** once they are full. Worn gear still shows the flashing red ! too.

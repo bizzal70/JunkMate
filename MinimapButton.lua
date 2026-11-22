@@ -1,9 +1,10 @@
 local addonName, ns = ...
 
 -- A button on the rim of the minimap that opens the options. While gear is
--- worn below the warning level, or the bags are full, a red "!" pulses on
--- it, and the window it opens says which piece and how worn. While the bags
--- are getting full it shows how many slots are left, in yellow.
+-- worn below the warning level, a blacksmith's hammer pulses in its corner,
+-- and the window it opens says which piece and how worn. While the bags are
+-- getting full it shows how many slots are left, in yellow, and a flashing
+-- red "!" once they are full.
 
 local button = CreateFrame("Button", addonName .. "MinimapButton", Minimap)
 button:SetSize(31, 31)
@@ -39,8 +40,31 @@ mark:SetPoint("CENTER", button, "CENTER", 9, 7)
 pcall(mark.SetFont, mark, STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 22, "THICKOUTLINE")
 mark:SetTextColor(1, 0.15, 0.1)
 mark:SetText("!")
-ns.wornBadge = badge
+ns.bagBadge = badge
 ns.badgeMark = mark
+
+-- Worn gear has its own sign, so it never looks like the bag warning: a
+-- blacksmith's hammer in the bottom-left corner, pulsing.
+local hammer = CreateFrame("Frame", nil, button)
+hammer:SetSize(15, 15)
+hammer:SetPoint("CENTER", button, "CENTER", -9, -8)
+hammer:SetFrameLevel(button:GetFrameLevel() + 3)
+hammer:Hide()
+local hammerBack = hammer:CreateTexture(nil, "BACKGROUND")
+hammerBack:SetPoint("TOPLEFT", -1, 1)
+hammerBack:SetPoint("BOTTOMRIGHT", 1, -1)
+hammerBack:SetColorTexture(0.85, 0.1, 0.05, 1)
+local hammerIcon = hammer:CreateTexture(nil, "ARTWORK")
+hammerIcon:SetAllPoints()
+hammerIcon:SetTexture("Interface\\Icons\\Trade_BlackSmithing")
+hammerIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+ns.wornBadge = hammer
+local hammerPulse = hammer:CreateAnimationGroup()
+hammerPulse:SetLooping("BOUNCE")
+local hammerFade = hammerPulse:CreateAnimation("Alpha")
+hammerFade:SetFromAlpha(1)
+hammerFade:SetToAlpha(0.3)
+hammerFade:SetDuration(0.6)
 
 -- A slow pulse, so the mark catches the eye without flashing.
 local pulse = badge:CreateAnimationGroup()
@@ -105,9 +129,17 @@ function ns.UpdateMinimapButton()
     else
         button:Hide()
     end
-    -- Worn gear or full bags: a flashing red "!". Bags getting low: how
-    -- many slots are left, in yellow, steady.
-    if ns.worn or ns.bagsLow == 0 then
+    -- Worn gear: the pulsing hammer.
+    if ns.worn then
+        hammer:Show()
+        if not hammerPulse:IsPlaying() then hammerPulse:Play() end
+    else
+        hammerPulse:Stop()
+        hammer:Hide()
+    end
+    -- Full bags: a flashing red "!". Bags getting low: how many slots are
+    -- left, in yellow, steady.
+    if ns.bagsLow == 0 then
         mark:SetText("!")
         mark:SetTextColor(1, 0.15, 0.1)
         badge:Show()

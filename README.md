@@ -17,7 +17,7 @@ then tells you in chat what that earned and cost, for example:
 
 Hold **Shift** while opening a vendor to skip both that time.
 
-It also **warns you when your gear is wearing out**. While your most worn piece is below 25% durability, a line stays on screen ("Gear worn: 18% left"), with one line in chat when it first drops below. It clears once you repair. A red **!** also pulses on JunkMate's minimap button; click it and the top of the window names the worn piece. You can drag the line to wherever you like, and set the level to 10%, 25% or 50%.
+It also **warns you when your gear is wearing out**. While your most worn piece is below 25% durability, a line stays on screen ("Gear worn: 18% left"), with one line in chat when it first drops below. It clears once you repair. A blacksmith's hammer also pulses on JunkMate's minimap button; click it and the top of the window names the worn piece. You can drag the line to wherever you like, and set the level to 10%, 25% or 50%.
 
 It also **warns you when your bags are nearly full**. Down to your last 4 slots, the minimap button shows how many are left (a yellow number) and chat says so; once the bags are full it shows a flashing red **!**. Set it to 2, 4 or 8 free slots. Only ordinary bags count, not herb, mining or other special bags.
 
