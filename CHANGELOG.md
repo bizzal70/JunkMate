@@ -1,5 +1,9 @@
 # JunkMate
 
+## 0.6.4
+
+- **Controller:** when a fight starts, B goes straight back to its usual job, even with a JunkMate window open (it used to stay on closing the window until the fight ended). It closes the window again once the fight is over.
+
 ## 0.6.3
 
 - **Worn gear has its own sign:** a pulsing blacksmith's hammer in the bottom-left corner of the minimap button, so it never looks like the bag warning (the yellow number, or the flashing red ! when full, top right). Both can show at once.
