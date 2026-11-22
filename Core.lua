@@ -43,6 +43,42 @@ local function Usable(value)
     return value ~= nil and not (issecretvalue and issecretvalue(value))
 end
 
+-- The controller's B button (PAD2) closes a window, as Escape does: while
+-- the window is shown, B is bound to closing it, and it gets its usual job
+-- back once the window hides. Bindings cannot change in combat, so a change
+-- that falls in combat waits until it ends.
+local padWindows = {}
+local padFrame = CreateFrame("Frame")
+local function PadApply(window)
+    if not (SetOverrideBinding and ClearOverrideBindings) then return end
+    if InCombatLockdown and InCombatLockdown() then
+        padFrame.waiting = true
+        return
+    end
+    ClearOverrideBindings(window)
+    if window:IsShown() then
+        SetOverrideBinding(window, true, "PAD2", "CLICK " .. window.padClose:GetName() .. ":LeftButton")
+    end
+end
+padFrame:SetScript("OnEvent", function(self)
+    if not self.waiting then return end
+    self.waiting = false
+    for _, window in ipairs(padWindows) do pcall(PadApply, window) end
+end)
+pcall(padFrame.RegisterEvent, padFrame, "PLAYER_REGEN_ENABLED")
+
+function ns.CloseWithPadB(window)
+    -- An invisible button for the binding to press: never placed on screen,
+    -- and not clickable with the mouse.
+    local close = CreateFrame("Button", window:GetName() .. "PadClose", UIParent)
+    close:EnableMouse(false)
+    close:SetScript("OnClick", function() window:Hide() end)
+    window.padClose = close
+    padWindows[#padWindows + 1] = window
+    window:HookScript("OnShow", function(self) pcall(PadApply, self) end)
+    window:HookScript("OnHide", function(self) pcall(PadApply, self) end)
+end
+
 -- 12345 copper -> "1g 23s 45c"
 function ns.Money(copper)
     copper = math.floor(copper + 0.5)

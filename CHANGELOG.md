@@ -1,5 +1,9 @@
 # JunkMate
 
+## 0.6.1
+
+- **Controller:** the B button now closes the JunkMate window, like the X and Escape. While it is open, B closes it; once it is closed, B does whatever you have it set to again.
+
 ## 0.6.0
 
 - **Bags nearly full warning:** when you are down to your last 4 bag slots, the ! on JunkMate's minimap button lights up yellow, and one line in chat says how many are left. Once the bags are completely full the ! turns red and chat says so once more. Both clear as soon as there is room again.

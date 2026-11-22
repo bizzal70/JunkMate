@@ -92,6 +92,7 @@ local function CreateWindow()
     Outline(window, 0.55)
     -- Lets Escape close the window.
     tinsert(UISpecialFrames, addonName .. "Options")
+    ns.CloseWithPadB(window)
 
     local title = window:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 14, -12)

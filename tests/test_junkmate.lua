@@ -304,3 +304,25 @@ SlashCmdList.JUNKMATE("price")
 check(Hover(2589, 1) == "" and not ns.db.priceTooltip, "/junkmate price turns it off")
 SlashCmdList.JUNKMATE("price")
 check(Hover(2589, 1) ~= "", "and on again")
+
+-- The controller's B button closes the window while it is shown.
+do
+    local bound = {}
+    SetOverrideBinding = function(owner, _, key, command) bound[owner] = { key = key, command = command } end
+    ClearOverrideBindings = function(owner) bound[owner] = nil end
+    local w = JunkMateOptions
+    w:Show(); w.__scripts.OnShow(w)
+    check(bound[w] and bound[w].key == "PAD2" and bound[w].command == "CLICK " .. w.padClose:GetName() .. ":LeftButton",
+        "while the window is shown, the controller's B button is set to close it")
+    w.padClose.__scripts.OnClick(w.padClose)
+    check(not w:IsShown(), "pressing B closes it")
+    w.__scripts.OnHide(w)
+    check(bound[w] == nil, "and B gets its usual job back once it is closed")
+    IN_COMBAT_SAVED = InCombatLockdown; InCombatLockdown = function() return true end
+    w:Show(); w.__scripts.OnShow(w)
+    check(bound[w] == nil, "bindings are not changed in combat")
+    InCombatLockdown = IN_COMBAT_SAVED
+    Fire("PLAYER_REGEN_ENABLED")
+    check(bound[w] ~= nil, "but are once it ends")
+    w:Hide(); w.__scripts.OnHide(w)
+end
