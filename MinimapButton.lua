@@ -1,9 +1,9 @@
 local addonName, ns = ...
 
 -- A button on the rim of the minimap that opens the options. While gear is
--- worn below the warning level, a red "!" pulses on it, and the window it
--- opens says which piece and how worn. While the bags are nearly full the
--- "!" pulses too, yellow if the gear is fine.
+-- worn below the warning level, or the bags are full, a red "!" pulses on
+-- it, and the window it opens says which piece and how worn. While the bags
+-- are getting full it shows how many slots are left, in yellow.
 
 local button = CreateFrame("Button", addonName .. "MinimapButton", Minimap)
 button:SetSize(31, 31)
@@ -40,6 +40,7 @@ pcall(mark.SetFont, mark, STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", 22, "THIC
 mark:SetTextColor(1, 0.15, 0.1)
 mark:SetText("!")
 ns.wornBadge = badge
+ns.badgeMark = mark
 
 -- A slow pulse, so the mark catches the eye without flashing.
 local pulse = badge:CreateAnimationGroup()
@@ -104,14 +105,19 @@ function ns.UpdateMinimapButton()
     else
         button:Hide()
     end
-    if ns.worn or ns.bagsLow then
-        if ns.worn or ns.bagsLow == 0 then
-            mark:SetTextColor(1, 0.15, 0.1)
-        else
-            mark:SetTextColor(1, 0.82, 0.1)
-        end
+    -- Worn gear or full bags: a flashing red "!". Bags getting low: how
+    -- many slots are left, in yellow, steady.
+    if ns.worn or ns.bagsLow == 0 then
+        mark:SetText("!")
+        mark:SetTextColor(1, 0.15, 0.1)
         badge:Show()
         if not pulse:IsPlaying() then pulse:Play() end
+    elseif ns.bagsLow then
+        pulse:Stop()
+        badge:SetAlpha(1)
+        mark:SetText(tostring(ns.bagsLow))
+        mark:SetTextColor(1, 0.82, 0.1)
+        badge:Show()
     else
         pulse:Stop()
         badge:Hide()

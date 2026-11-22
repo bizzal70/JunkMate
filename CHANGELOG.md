@@ -1,5 +1,9 @@
 # JunkMate
 
+## 0.6.2
+
+- The minimap button now shows **how many bag slots are left** (a yellow 3, 2, 1) while your bags are getting full, and a **flashing red !** once they are full. Worn gear still shows the flashing red ! too.
+
 ## 0.6.1
 
 - **Controller:** the B button now closes the JunkMate window, like the X and Escape. While it is open, B closes it; once it is closed, B does whatever you have it set to again.
