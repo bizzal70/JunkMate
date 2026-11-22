@@ -43,6 +43,10 @@ Type `/junkmate` (or `/jmate`) to open the options, click JunkMate's minimap but
 - A mistaken sale can be bought back from the vendor's Buyback tab, as usual.
 - Repairs are paid from your own money, never a guild bank.
 
+## Controller
+
+With a game controller, the **B** button closes the JunkMate window, like the X and Escape do. While a window is open, B closes it; once it is closed, B goes back to whatever you have it set to. (In combat the game does not let addons change a button, so B goes back to normal when the fight ends.)
+
 ## More from this author
 
 Other small addons for World of Warcraft: Forever, all free:

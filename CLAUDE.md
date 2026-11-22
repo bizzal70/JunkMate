@@ -40,3 +40,7 @@ Everything below, unless marked verified, comes from community sources during th
 - SavedVariables: initialise in `ADDON_LOADED`. Early beta builds reportedly wrote them but did not read them back; on build 70338 they are read back (confirmed in game 2026-10-11).
 
 - Renamed from VendorMate to JunkMate on 2026-11-07 (0.3.0), because a Retail addon called VendorMate already held the name on CurseForge. Saved data moved from `VendorMateDB` to `JunkMateDB`; the user's WTF file was copied over by hand.
+
+## Controller B closes windows (2026-11-22)
+
+- `ns.CloseWithPadB(window, name)` in Core.lua: every window listed in `UISpecialFrames` also calls it. While the window is shown, `SetOverrideBinding(window, true, "PAD2", "CLICK <name>PadClose:LeftButton")` points the controller's B at an invisible, mouse-disabled button that hides it; `ClearOverrideBindings(window)` on hide. Bindings cannot change in combat, so a change then waits for PLAYER_REGEN_ENABLED. Any new window: add it to UISpecialFrames and call `ns.CloseWithPadB` right after. Not yet confirmed in game.
