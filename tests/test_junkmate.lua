@@ -232,7 +232,7 @@ local rows = {}
 for _, f in ipairs(Frames()) do
     if rawget(f, "Refresh") and f.__scripts.OnClick then rows[#rows + 1] = f end
 end
-check(#rows == 11, "the options have eleven controls")
+check(#rows == 12, "the options have twelve controls")
 local statusLine
 for _, f in ipairs(Frames()) do
     if rawget(f, "__text") and f.__text:find("^Gear") then statusLine = f end
@@ -588,4 +588,87 @@ do
     RunAfters()
     check(not room:IsShown(), "with the option off, nothing is offered")
     ns.db.makeRoom = true
+end
+
+-- At the bank (Bank.lua).
+do
+    ITEMS[2592] = { name = "Wool Cloth", q = 1, stack = 20, price = 33, class = 7, sub = 0 }
+    local tickers = {}
+    C_Timer.NewTicker = function(_, fn)
+        local t = { fn = fn, Cancel = function(self) self.cancelled = true end }
+        tickers[#tickers + 1] = t
+        return t
+    end
+    local function RunTickers(limit)
+        local index = 1
+        while tickers[index] do
+            local t = tickers[index]
+            for _ = 1, limit or 100 do if t.cancelled then break end; t.fn(t) end
+            index = index + 1
+        end
+        tickers = {}
+    end
+    local function RunAfters()
+        local timers = AFTERS; AFTERS = {}
+        for _, fn in ipairs(timers) do fn() end
+    end
+    local function Item(id, count)
+        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1 }
+    end
+    local function Bag(list, size)
+        local bag = {}
+        for i = 1, size do bag[i] = list[i] or false end
+        return bag
+    end
+    local function Said() return PRINTED[#PRINTED] or "" end
+    local function Setup()
+        BAGS[-1] = Bag({ Item(2589, 15), Item(2589, 6), Item(2592, 20), Item(9010, 5) }, 24)
+        for bag = 5, 11 do BAGS[bag] = {} end
+        BAGS[0] = Bag({ Item(2589, 7), Item(2592, 4), Item(9010, 10), Item(2589, 3) }, 16)
+        for bag = 1, 4 do BAGS[bag] = {} end
+    end
+
+    Setup()
+    local ids = ns.BankContainers()
+    check(ids[1] == -1 and ids[2] == 5 and #ids == 8, "the bank and its bags are found, never the player's own bags")
+    check(ns.db.bankTidy, "tidying the bank starts on")
+    Fire("BANKFRAME_OPENED")
+    RunAfters()
+    RunTickers()
+    check(BAGS[-1][1].stackCount == 20 and BAGS[-1][2].stackCount == 11, "the bank's partial stacks are put together, then topped up from the bags")
+    check(BAGS[0][1] == false and BAGS[0][4] == false, "the linen in the bags went into the bank's stack, freeing two bag slots")
+    check(BAGS[0][2].stackCount == 4 and BAGS[-1][3].stackCount == 20, "wool stays in the bags: the bank's wool stack is already full")
+    check(BAGS[0][3].stackCount == 10 and BAGS[-1][4].stackCount == 5, "food is never taken from the bags, only crafting materials")
+    check(Said():find("At the bank: put partial bank stacks together; moved 10 items from your bags onto bank stacks (2 bag slots freed).", 1, true) ~= nil,
+        "and it says what it did: " .. Said())
+    SlashCmdList.JUNKMATE("bank")
+    RunTickers()
+    check(Said():find("already tidy", 1, true) ~= nil, "/junkmate bank with nothing to do says so")
+    Fire("BANKFRAME_CLOSED")
+    SlashCmdList.JUNKMATE("bank")
+    check(Said() == "|cffd9a066JunkMate|r: Open your bank first.", "and with the bank closed, asks for it to be opened")
+
+    Setup()
+    SHIFT = true
+    Fire("BANKFRAME_OPENED")
+    RunAfters()
+    check(#tickers == 0 and BAGS[-1][1].stackCount == 15, "holding Shift at the bank leaves it alone")
+    SHIFT = false
+    Fire("BANKFRAME_CLOSED")
+
+    ns.db.bankTidy = false
+    Fire("BANKFRAME_OPENED")
+    RunAfters()
+    check(#tickers == 0, "with the option off, the bank is left alone")
+    ns.db.bankTidy = true
+    Fire("BANKFRAME_CLOSED")
+
+    Fire("BANKFRAME_OPENED")
+    RunAfters()
+    tickers[1].fn(tickers[1]); tickers[1].fn(tickers[1])
+    Fire("BANKFRAME_CLOSED")
+    RunTickers()
+    check(Said():find("closed before JunkMate was done", 1, true) ~= nil and BAGS[0][1] ~= false, "closing the bank stops it part way, and it says so")
+    BAGS[-1] = {}
+    for bag = 5, 11 do BAGS[bag] = nil end
 end

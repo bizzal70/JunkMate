@@ -37,6 +37,8 @@ local defaults = {
     makeRoom = true,
     restack = true,
     keep = {},
+    -- At the bank: restack it and top up its stacks from the bags (Bank.lua).
+    bankTidy = true,
 }
 
 function ns.Print(msg)
@@ -272,6 +274,9 @@ SlashCmdList.JUNKMATE = function(msg)
     elseif command == "room" then
         ns.MakeRoomCommand()
         return
+    elseif command == "bank" then
+        ns.TidyBank(true)
+        return
     elseif command == "restack" then
         ns.RestackCommand()
         return
@@ -314,9 +319,10 @@ SlashCmdList.JUNKMATE = function(msg)
         ns.Print("/junkmate button - show or hide the minimap button")
         ns.Print("/junkmate room - offer the cheapest thing to destroy to free a slot")
         ns.Print("/junkmate restack - put partial stacks together")
+        ns.Print("/junkmate bank - tidy the open bank now")
         ns.Print("/junkmate keep - items never offered (keep clear to empty it)")
         ns.Print("/junkmate destroyed - what was destroyed this session")
-        ns.Print("Hold Shift while opening a vendor to skip both that time.")
+        ns.Print("Hold Shift while opening a vendor (or the bank) to skip it that time.")
         return
     end
     ns.Print(Describe())

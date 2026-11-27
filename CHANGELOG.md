@@ -1,5 +1,11 @@
 # JunkMate
 
+## 0.8.0
+
+- **Tidies the bank.** When you open your bank, JunkMate puts its partial stacks together, then tops up the bank's partial stacks of crafting materials from your bags. For example, with 15 Linen Cloth in the bank and 7 in your bags, 5 go in to make 20 and 2 stay with you.
+- Only crafting materials move from your bags to the bank, and only onto stacks already there: food, potions, ammo and reagents you carry are never taken, and nothing is put into an empty bank slot.
+- Works with the bank's own slots and its bags (or bank tabs). Hold **Shift** while opening the bank to skip it, type `/junkmate bank` to run it again, or switch it off in the options.
+
 ## 0.7.0
 
 - **Make room for loot.** When something won't fit in your bags, JunkMate first restacks them (that loses nothing). If that doesn't free a slot, a small window offers to destroy the cheapest thing you don't need, so the loot fits: grey items first, then food and drink you've outgrown, then gear that isn't an upgrade. **Nothing is destroyed until you press Destroy** (A on a controller). After that, the loot is picked up for you.

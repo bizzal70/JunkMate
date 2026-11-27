@@ -54,13 +54,14 @@ function ns.ItemFacts(item)
     }
 end
 
--- Every item in the backpack and the four bags.
-function ns.BagItems()
+-- Every item in the given containers (bag IDs).
+function ns.ContainerItems(bags)
     local items = {}
     local container = C_Container
     if not (container and container.GetContainerNumSlots) then return items end
-    for bag = FIRST_BAG, LAST_BAG do
-        local slots = Number(container.GetContainerNumSlots(bag)) or 0
+    for _, bag in ipairs(bags) do
+        local ok, count = pcall(container.GetContainerNumSlots, bag)
+        local slots = ok and Number(count) or 0
         for slot = 1, slots do
             local info = container.GetContainerItemInfo(bag, slot)
             if type(info) == "table" and Number(info.itemID) then
@@ -76,16 +77,24 @@ function ns.BagItems()
     return items
 end
 
+-- Every item in the backpack and the four bags.
+local BAG_IDS = {}
+for bag = FIRST_BAG, LAST_BAG do BAG_IDS[#BAG_IDS + 1] = bag end
+function ns.BagItems()
+    return ns.ContainerItems(BAG_IDS)
+end
+
 ----------------------------------------------------------------------------
 -- Restacking
 ----------------------------------------------------------------------------
 
--- The merges that would tidy the bags: a list of { itemID, from, to,
--- amount, max }, and how many slots they free. Fuller stacks are topped up
--- from the smallest ones, so the fewest stacks are left.
-function ns.RestackPlan()
+-- The merges that would tidy the bags (or the given items, such as the
+-- bank's): a list of { itemID, from, to, amount, max }, and how many slots
+-- they free. Fuller stacks are topped up from the smallest ones, so the
+-- fewest stacks are left.
+function ns.RestackPlan(items)
     local groups = {}
-    for _, item in ipairs(ns.BagItems()) do
+    for _, item in ipairs(items or ns.BagItems()) do
         if not item.locked then
             local facts = ns.ItemFacts(item.itemID)
             local max = facts and facts.maxStack or 1
@@ -154,19 +163,19 @@ function ns.Restacking()
     return restackTicker ~= nil
 end
 
--- Restacks the bags, one merge at a time; onDone(slotsFreed) once finished.
--- Returns whether there was anything to do.
-function ns.Restack(onDone)
-    if restackTicker then return true end
-    local moves, freed = ns.RestackPlan()
-    if #moves == 0 then return false end
+-- Makes the moves one at a time, then onDone(finished). keepGoing, if
+-- given, is asked before each move; once it says no, the rest are left and
+-- onDone(false) is called. Returns false if moves are already under way.
+function ns.RunMoves(moves, onDone, keepGoing)
+    if restackTicker then return false end
     local index, waits = 1, 0
     restackTicker = C_Timer.NewTicker(MOVE_INTERVAL, function(ticker)
         local move = moves[index]
-        if not move then
+        local stop = move and keepGoing and not keepGoing()
+        if not move or stop then
             ticker:Cancel()
             restackTicker = nil
-            if onDone then pcall(onDone, freed) end
+            if onDone then pcall(onDone, not stop) end
             return
         end
         local ok, result = pcall(DoMove, move)
@@ -178,6 +187,15 @@ function ns.Restack(onDone)
         waits, index = 0, index + 1
     end)
     return true
+end
+
+-- Restacks the bags, one merge at a time; onDone(slotsFreed) once finished.
+-- Returns whether there was anything to do.
+function ns.Restack(onDone)
+    if restackTicker then return true end
+    local moves, freed = ns.RestackPlan()
+    if #moves == 0 then return false end
+    return ns.RunMoves(moves, function() if onDone then onDone(freed) end end)
 end
 
 local function SayRestacked(freed)

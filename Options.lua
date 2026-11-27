@@ -79,7 +79,7 @@ end
 
 local function CreateWindow()
     window = CreateFrame("Frame", addonName .. "Options", UIParent)
-    window:SetSize(328, 476)
+    window:SetSize(328, 504)
     window:SetPoint("CENTER")
     window:SetFrameStrata("HIGH")
     window:SetToplevel(true)
@@ -193,10 +193,14 @@ local function CreateWindow()
         function() return "Restack when bags get nearly full" end,
         function() return ns.db.restack end,
         function() ns.db.restack = not ns.db.restack end)
+    CreateRow(window, -436, true,
+        function() return "Tidy the bank when it opens" end,
+        function() return ns.db.bankTidy end,
+        function() ns.db.bankTidy = not ns.db.bankTidy end)
 
     local hint = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("BOTTOMLEFT", 16, 12)
-    hint:SetText("Hold Shift while opening a vendor to skip both.")
+    hint:SetText("Hold Shift while opening a vendor or the bank to skip it.")
 end
 
 function ns.RefreshOptions()

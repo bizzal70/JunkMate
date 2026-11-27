@@ -33,6 +33,8 @@ It also **warns you when your bags are nearly full**. Down to your last 4 slots,
 
 JunkMate also **restacks on its own** when your bags get down to the warning level, before warning you.
 
+**Tidies the bank.** When you open your bank, JunkMate puts the bank's partial stacks together, then tops up its partial stacks of crafting materials from your bags (15 Linen Cloth in the bank and 7 in your bags: 5 go in to make 20, and 2 stay with you), and says in chat what it did. Only crafting materials move, and only onto stacks already in the bank, so the food, potions, ammo and reagents you carry stay with you and nothing lands in an empty bank slot. Hold **Shift** while opening the bank to skip it.
+
 **Vendor prices on tooltips:** hover over any item to see what it sells for at a vendor, and for a stack what the whole stack is worth ("Vendor: 13c each, 20 for 2s 60c"). Items a vendor will not buy say so. Handy for deciding what to vendor, auction or mail to your bank alt. Forever's own tooltip already shows the sell price of the whole stack; there JunkMate adds only what one is worth ("Sell price each: 3c"), for stacks.
 
 ## Options
@@ -50,6 +52,7 @@ Type `/junkmate` (or `/jmate`) to open the options, click JunkMate's minimap but
 | Show the minimap button | `/junkmate button` |
 | Offer to make room when loot won't fit | (options window) |
 | Restack when bags get nearly full | (options window) |
+| Tidy the bank when it opens | (options window), or `/junkmate bank` to run it now |
 
 Also: `/junkmate room` (make room now, without loot), `/junkmate restack` (restack now), `/junkmate keep` (what it never offers; `/junkmate keep clear` empties it) and `/junkmate destroyed` (what was destroyed this session).
 
