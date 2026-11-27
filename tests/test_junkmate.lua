@@ -232,7 +232,7 @@ local rows = {}
 for _, f in ipairs(Frames()) do
     if rawget(f, "Refresh") and f.__scripts.OnClick then rows[#rows + 1] = f end
 end
-check(#rows == 9, "the options have nine controls")
+check(#rows == 11, "the options have eleven controls")
 local statusLine
 for _, f in ipairs(Frames()) do
     if rawget(f, "__text") and f.__text:find("^Gear") then statusLine = f end
@@ -348,4 +348,244 @@ do
     Fire("PLAYER_REGEN_ENABLED")
     check(bound[w] == "PAD2", "and borrowed again once the fight is over")
     w:Hide(); w.__scripts.OnHide(w)
+end
+
+-- Restacking and making room for loot (Room.lua).
+do
+    -- Items: id -> { name, q(uality), ilvl, min(level), stack, loc, price, class, sub }
+    ITEMS = {
+        [2589] = { name = "Linen Cloth", q = 1, stack = 20, price = 13, class = 7, sub = 0 },
+        [9001] = { name = "Broken Fang", q = 0, price = 5, class = 15, sub = 0 },
+        [9002] = { name = "Torn Pelt", q = 0, price = 50, class = 15, sub = 0 },
+        [7005] = { name = "Skinning Knife", q = 1, ilvl = 4, loc = "INVTYPE_WEAPONMAINHAND", price = 4, class = 2, sub = 15 },
+        [9003] = { name = "Bandit Bandana", q = 1, price = 0, class = 12, sub = 0 },
+        [9004] = { name = "Gnoll Paw", q = 1, price = 0, class = 15, sub = 0 },
+        [6948] = { name = "Hearthstone", q = 1, price = 0, class = 15, sub = 0 },
+        [9010] = { name = "Tough Jerky", q = 1, min = 5, stack = 20, price = 2, class = 0, sub = 5 },
+        [9011] = { name = "Roasted Quail", q = 1, min = 15, stack = 20, price = 10, class = 0, sub = 5 },
+        [9012] = { name = "Smoked Bear Meat", q = 1, min = 25, stack = 20, price = 12, class = 0, sub = 5 },
+        [9013] = { name = "Spring Water", q = 1, min = 1, stack = 20, price = 1, class = 0, sub = 5 },
+        [9014] = { name = "Crispy Bat Wing", q = 1, min = 1, stack = 20, price = 3, class = 0, sub = 5 },
+        [858] = { name = "Lesser Healing Potion", q = 1, min = 3, stack = 5, price = 5, class = 0, sub = 1 },
+        [9020] = { name = "Cloth Bracers", q = 2, ilvl = 20, loc = "INVTYPE_WRIST", price = 80, class = 4, sub = 1 },
+        [9021] = { name = "Mail Chest", q = 2, ilvl = 25, loc = "INVTYPE_CHEST", price = 120, class = 4, sub = 3 },
+        [9022] = { name = "Cloth Gloves", q = 1, ilvl = 5, loc = "INVTYPE_HAND", price = 10, class = 4, sub = 1 },
+        [9023] = { name = "Epic Ring", q = 4, ilvl = 40, loc = "INVTYPE_FINGER", price = 900, class = 4, sub = 0 },
+        [9030] = { name = "Worn Gloves", q = 1, ilvl = 12, loc = "INVTYPE_HAND", price = 8, class = 4, sub = 1 },
+        [9040] = { name = "Green Bracers", q = 2, ilvl = 18, loc = "INVTYPE_WRIST", price = 60, class = 4, sub = 1 },
+        [9041] = { name = "Shiny Pebble", q = 1, price = 1, class = 15, sub = 0 },
+    }
+    SPELLS = { [9010] = "Food", [9011] = "Food", [9012] = "Food", [9013] = "Drink", [9014] = "Food", [858] = "Healing Potion" }
+    C_Item.GetItemInfo = function(item)
+        local id = type(item) == "number" and item or tonumber(tostring(item):match("item:(%d+)") or "")
+        local it = id and ITEMS[id]
+        if not it then return nil end
+        return it.name, "item:" .. id, it.q, it.ilvl or 1, it.min or 0, "type", "sub", it.stack or 1, it.loc or "", "icon",
+            it.price or 0, it.class, it.sub
+    end
+    C_Item.GetItemSpell = function(id) return SPELLS[id] end
+    C_TooltipInfo = { GetBagItem = function(bag, slot)
+        local item = BAGS[bag][slot]
+        if item and item.itemID == 9014 then
+            return { lines = { { leftText = "Use: Restores 61 health over 18 sec. If you spend at least 10 seconds eating you will become well fed." } } }
+        end
+        return { lines = {} }
+    end }
+    C_Container.GetContainerItemQuestInfo = function(bag, slot)
+        local item = BAGS[bag][slot]
+        return { isQuestItem = item and item.itemID == 9004 or false }
+    end
+    UnitClass = function() return "Mage", "MAGE" end
+    GetInventoryItemLink = function(_, slot) if slot == 10 then return "item:9030" end end
+
+    -- The cursor, as the game has it.
+    CURSOR, DELETED, LOOTED = nil, {}, {}
+    C_Container.PickupContainerItem = function(bag, slot)
+        local item = BAGS[bag][slot]
+        if CURSOR then
+            if not item then
+                CURSOR.item.stackCount = CURSOR.count
+                BAGS[bag][slot] = CURSOR.item
+                CURSOR = nil
+            elseif item.itemID == CURSOR.itemID then
+                local add = math.min((ITEMS[item.itemID].stack or 1) - item.stackCount, CURSOR.count)
+                item.stackCount, CURSOR.count = item.stackCount + add, CURSOR.count - add
+                if CURSOR.count == 0 then CURSOR = nil end
+            end
+        elseif item then
+            CURSOR = { itemID = item.itemID, count = item.stackCount, item = item, bag = bag, slot = slot }
+            BAGS[bag][slot] = false
+        end
+    end
+    C_Container.SplitContainerItem = function(bag, slot, count)
+        local item = BAGS[bag][slot]
+        local copy = {}
+        for k, v in pairs(item) do copy[k] = v end
+        CURSOR = { itemID = item.itemID, count = count, item = copy, bag = bag, slot = slot }
+        item.stackCount = item.stackCount - count
+        if item.stackCount == 0 then BAGS[bag][slot] = false end
+    end
+    CursorHasItem = function() return CURSOR ~= nil end
+    GetCursorInfo = function() if CURSOR then return "item", CURSOR.itemID end end
+    ClearCursor = function()
+        if not CURSOR then return end
+        local c = CURSOR
+        CURSOR = nil
+        local item = BAGS[c.bag][c.slot]
+        if item then item.stackCount = item.stackCount + c.count
+        else c.item.stackCount = c.count; BAGS[c.bag][c.slot] = c.item end
+    end
+    DeleteCursorItem = function() DELETED[#DELETED + 1] = CURSOR.itemID; CURSOR = nil end
+    LootSlot = function(slot) LOOTED[#LOOTED + 1] = slot end
+    LOOTS = {}
+    GetNumLootItems = function() return #LOOTS end
+    GetLootSlotInfo = function(slot) local l = LOOTS[slot]; return "icon", l.name, l.count or 1, nil, l.q, false, false, nil end
+    GetLootSlotLink = function(slot) return LOOTS[slot].link end
+    local tickers = {}
+    C_Timer.NewTicker = function(_, fn)
+        local t = { fn = fn, Cancel = function(self) self.cancelled = true end }
+        tickers[#tickers + 1] = t
+        return t
+    end
+    local function RunTickers()
+        for _, t in ipairs(tickers) do
+            for _ = 1, 100 do if t.cancelled then break end; t.fn(t) end
+        end
+        tickers = {}
+    end
+    local function RunAfters()
+        local timers = AFTERS; AFTERS = {}
+        for _, fn in ipairs(timers) do fn() end
+    end
+    local function Item(id, count)
+        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1 }
+    end
+    local function Bag(list, size)
+        local bag = {}
+        for i = 1, size do bag[i] = list[i] or false end
+        return bag
+    end
+    local function Said() return PRINTED[#PRINTED] or "" end
+    for bag = 1, 4 do BAGS[bag] = {} end
+
+    -- Restacking by hand.
+    BAGS[0] = Bag({ Item(2589, 7), Item(2589, 7), Item(2589, 15) }, 16)
+    local moves, freed = ns.RestackPlan()
+    check(#moves == 2 and freed == 1, "partial stacks of 7, 7 and 15 make a plan that frees a slot")
+    SlashCmdList.JUNKMATE("restack")
+    RunTickers()
+    check(BAGS[0][3].stackCount == 20 and BAGS[0][1].stackCount == 9 and BAGS[0][2] == false and CURSOR == nil,
+        "restacking tops up the fullest stack and empties the smallest")
+    check(Said():find("Restacked your bags: 1 slot freed.", 1, true) ~= nil, "and says so: " .. Said())
+    SlashCmdList.JUNKMATE("restack")
+    check(Said():find("Nothing to restack", 1, true) ~= nil and #tickers == 0, "with nothing left to merge, it says so")
+
+    -- Restacking on its own when the bags get nearly full.
+    local list = {}
+    for i = 1, 13 do list[i] = Item(9022) end
+    list[14], list[15] = Item(2589, 3), Item(2589, 4)
+    BAGS[0] = Bag(list, 16)
+    local before = #PRINTED
+    Fire("BAG_UPDATE_DELAYED")
+    check(#PRINTED == before and #tickers == 1, "down to 1 free slot with stacks to merge, it restacks before warning")
+    RunTickers()
+    check(BAGS[0][15].stackCount == 7 and BAGS[0][14] == false, "the two linen stacks become one")
+    check(PRINTED[before + 1]:find("1 slot freed", 1, true) ~= nil and Said():find("Only 2 bag slots left.", 1, true) ~= nil,
+        "then says what it freed, and warns about what is left: " .. Said())
+    ns.db.restack = false
+    BAGS[0][14] = Item(2589, 3)
+    NOW = NOW + 60
+    Fire("BAG_UPDATE_DELAYED")
+    check(#tickers == 0, "with restacking switched off, it does not")
+    ns.db.restack = true
+
+    -- What would be offered, and in what order.
+    BAGS[0] = Bag({ Item(9021), Item(7005), Item(9003), Item(9004), Item(6948), Item(9010, 3), Item(9011, 4), Item(9012, 2),
+        Item(9013, 5), Item(9014, 2), Item(858, 2), Item(9020), Item(9002), Item(9022), Item(9023), Item(9001) }, 16)
+    local names = {}
+    for _, item in ipairs(ns.RoomCandidates()) do names[#names + 1] = item.name end
+    check(table.concat(names, ",") == "Broken Fang,Torn Pelt,Tough Jerky,Cloth Gloves,Mail Chest",
+        "greys first, then outgrown food, then gear that is no upgrade, cheapest first: " .. table.concat(names, ","))
+    check(true, "never offered: profession tools, quest items, the hearthstone, the best food and drink, buff food, potions, upgrades, epics")
+
+    -- Loot that will not fit.
+    LOOTS = { { link = "item:9040", name = "Green Bracers", q = 2 } }
+    Fire("UI_ERROR_MESSAGE", 3, "Inventory is full.")
+    RunAfters()
+    local room = JunkMateRoom
+    check(room:IsShown() and room.what:GetText():find("item:9001", 1, true) and room.why:GetText():find("item:9040", 1, true),
+        "a green that will not fit brings up the window, offering the cheapest grey: " .. tostring(room.what:GetText()))
+    room.destroy.__scripts.OnClick(room.destroy)
+    check(#DELETED == 0, "a press straight away is ignored, so nothing unseen is destroyed")
+    NOW = NOW + 1
+    room.destroy.__scripts.OnClick(room.destroy)
+    check(DELETED[1] == 9001 and BAGS[0][16] == false and not room:IsShown(), "pressing Destroy destroys it")
+    check(Said():find("Destroyed item:9001 (worth 5c) to make room.", 1, true) ~= nil, "and says what went: " .. Said())
+    room.__scripts.OnHide(room)
+    Fire("BAG_UPDATE_DELAYED")
+    check(LOOTED[1] == 1, "once the bags have room, the green is looted")
+
+    -- Not this one, and keep always.
+    BAGS[0][16] = Item(9001)
+    Fire("UI_ERROR_MESSAGE", 3, "Inventory is full.")
+    RunAfters()
+    NOW = NOW + 1
+    room.next.__scripts.OnClick(room.next)
+    check(room.what:GetText():find("item:9002", 1, true) ~= nil, "Not this one offers the next cheapest")
+    NOW = NOW + 1
+    room.keep.__scripts.OnClick(room.keep)
+    check(ns.db.keep[9002] and room.what:GetText():find("item:9010", 1, true) ~= nil, "Keep always remembers the item and moves on")
+    SlashCmdList.JUNKMATE("keep")
+    check(Said():find("Kept: item:9002", 1, true) ~= nil, "/junkmate keep lists it")
+    SlashCmdList.JUNKMATE("keep clear")
+    check(next(ns.db.keep) == nil, "/junkmate keep clear forgets them")
+    Fire("LOOT_CLOSED")
+    room.__scripts.OnHide(room)
+    check(not room:IsShown(), "closing the loot window closes the offer")
+
+    -- Loot not worth it.
+    LOOTS = { { link = "item:9041", name = "Shiny Pebble", q = 1 } }
+    before = #PRINTED
+    Fire("UI_ERROR_MESSAGE", 3, "Inventory is full.")
+    RunAfters()
+    check(not room:IsShown() and Said():find("is worth less than item:9001", 1, true) ~= nil,
+        "a white worth less than the cheapest candidate is left, and it says why: " .. Said())
+    Fire("UI_ERROR_MESSAGE", 3, "Inventory is full.")
+    RunAfters()
+    check(#PRINTED == before + 1, "only once per loot window")
+    Fire("LOOT_CLOSED")
+
+    -- Safety.
+    LOOTS = {}
+    SlashCmdList.JUNKMATE("room")
+    check(room:IsShown() and room.why:GetText() == "To free a bag slot.", "/junkmate room offers something just to free a slot")
+    NOW = NOW + 1
+    CURSOR = { itemID = 1, count = 1, item = {}, bag = 1, slot = 1 }
+    room.destroy.__scripts.OnClick(room.destroy)
+    check(#DELETED == 1 and Said():find("holding an item", 1, true) ~= nil, "nothing is destroyed while an item is in hand")
+    CURSOR = nil
+    DeleteCursorItem = function() end
+    room.destroy.__scripts.OnClick(room.destroy)
+    check(#DELETED == 1 and BAGS[0][16] and BAGS[0][16].itemID == 9001 and CURSOR == nil and Said():find("would not let", 1, true) ~= nil,
+        "if the game refuses, the item goes back where it was")
+    DeleteCursorItem = function() DELETED[#DELETED + 1] = CURSOR.itemID; CURSOR = nil end
+    BAGS[0][16] = Item(9002)
+    room.destroy.__scripts.OnClick(room.destroy)
+    check(#DELETED == 1, "if the item moved, it is not destroyed; the offer is looked at again")
+
+    -- Controller buttons while it is open.
+    local bound = {}
+    SetOverrideBinding = function(_, _, key, command) bound[key] = command end
+    ClearOverrideBindings = function() bound = {} end
+    room:Show(); room.__scripts.OnShow(room)
+    check(bound.PAD1 == "CLICK JunkMateRoomDestroy:LeftButton" and bound.PAD3 == "CLICK JunkMateRoomNext:LeftButton"
+        and bound.PAD4 == "CLICK JunkMateRoomKeep:LeftButton" and bound.PAD2 ~= nil, "A destroys, X skips, Y keeps and B closes")
+    room:Hide(); room.__scripts.OnHide(room)
+    check(next(bound) == nil, "and they go back once it closes")
+    ns.db.makeRoom = false
+    LOOTS = { { link = "item:9040", name = "Green Bracers", q = 2 } }
+    Fire("UI_ERROR_MESSAGE", 3, "Inventory is full.")
+    RunAfters()
+    check(not room:IsShown(), "with the option off, nothing is offered")
+    ns.db.makeRoom = true
 end

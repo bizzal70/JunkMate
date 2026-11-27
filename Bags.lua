@@ -67,7 +67,11 @@ end
 function ns.UpdateBags()
     local db = ns.db
     if not db then return end
-    local free = db.bagWarn and ns.FreeBagSlots() or nil
+    local free = ns.FreeBagSlots()
+    -- Nearly full: restack first, if that frees a slot. The warning waits
+    -- to see how much room it made.
+    if free and free <= db.bagLevel and ns.AutoRestack and ns.AutoRestack() then return end
+    if not db.bagWarn then free = nil end
     if not free or free > db.bagLevel then
         warnedLow, warnedFull = false, false
         ns.bagsLow = nil

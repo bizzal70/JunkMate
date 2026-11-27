@@ -21,6 +21,18 @@ It also **warns you when your gear is wearing out**. While your most worn piece 
 
 It also **warns you when your bags are nearly full**. Down to your last 4 slots, the minimap button shows how many are left (a yellow number) and chat says so; once the bags are full it shows a flashing red **!**. Set it to 2, 4 or 8 free slots. Only ordinary bags count, not herb, mining or other special bags.
 
+**Makes room for loot.** When something won't fit in your bags, JunkMate first **restacks** them, putting partial stacks together, which loses nothing. If that doesn't free a slot, a small window offers to destroy the cheapest thing you don't need, so the loot fits:
+
+> Destroy [Broken Fang] (worth 5c)? To make room for [Green Bracers].
+
+**Nothing is ever destroyed until you press Destroy.** Then the loot is picked up for you. Press **Not this one** to see the next choice, or **Keep always** so JunkMate never offers that item again.
+
+- **What it offers, in order:** grey items first, then food and drink you've outgrown, then gear that isn't an upgrade for your class (wrong armour type, or a lower item level than what you wear), cheapest first.
+- **What it never offers:** quest items, crafting materials, recipes, profession tools (skinning knife, mining pick, fishing poles, enchanting rods and so on), the hearthstone, soul shards and class reagents, keys, bags, ammo, potions and other consumables, gear that would be an upgrade, anything epic, buff food ("well fed"), and the **best food and drink you carry for your level**. So only the old stacks of apples and bread go, never what you'd actually eat.
+- **Worth it or not:** it only makes room for quest items, crafting materials, anything green or better, upgrades, or loot worth more than what would go. A 1-copper pebble won't cost you anything.
+
+JunkMate also **restacks on its own** when your bags get down to the warning level, before warning you.
+
 **Vendor prices on tooltips:** hover over any item to see what it sells for at a vendor, and for a stack what the whole stack is worth ("Vendor: 13c each, 20 for 2s 60c"). Items a vendor will not buy say so. Handy for deciding what to vendor, auction or mail to your bank alt. Forever's own tooltip already shows the sell price of the whole stack; there JunkMate adds only what one is worth ("Sell price each: 3c"), for stacks.
 
 ## Options
@@ -36,16 +48,21 @@ Type `/junkmate` (or `/jmate`) to open the options, click JunkMate's minimap but
 | Warn when your bags are nearly full | `/junkmate bags` |
 | Vendor prices on item tooltips | `/junkmate price` |
 | Show the minimap button | `/junkmate button` |
+| Offer to make room when loot won't fit | (options window) |
+| Restack when bags get nearly full | (options window) |
+
+Also: `/junkmate room` (make room now, without loot), `/junkmate restack` (restack now), `/junkmate keep` (what it never offers; `/junkmate keep clear` empties it) and `/junkmate destroyed` (what was destroyed this session).
 
 ## Good to know
 
-- Only junk is sold: grey items. Nothing white or better is ever touched.
+- Only junk is sold: grey items. Nothing white or better is ever sold.
+- A destroyed item is gone for good. That is why JunkMate never destroys anything without you pressing the button, and says in chat what went.
 - A mistaken sale can be bought back from the vendor's Buyback tab, as usual.
 - Repairs are paid from your own money, never a guild bank.
 
 ## Controller
 
-With a game controller, the **B** button closes the JunkMate window, like the X and Escape do. While a window is open, B closes it; once it is closed, B goes back to whatever you have it set to. When a fight starts, B goes straight back to its usual job, even with the window open.
+With a game controller, the **B** button closes the JunkMate window, like the X and Escape do. In the make-room window, **A** destroys, **X** shows the next choice and **Y** keeps the item always. While a window is open, B closes it; once it is closed, B goes back to whatever you have it set to. When a fight starts, B goes straight back to its usual job, even with the window open.
 
 ## More from this author
 

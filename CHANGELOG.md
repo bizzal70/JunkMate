@@ -1,5 +1,14 @@
 # JunkMate
 
+## 0.7.0
+
+- **Make room for loot.** When something won't fit in your bags, JunkMate first restacks them (that loses nothing). If that doesn't free a slot, a small window offers to destroy the cheapest thing you don't need, so the loot fits: grey items first, then food and drink you've outgrown, then gear that isn't an upgrade. **Nothing is destroyed until you press Destroy** (A on a controller). After that, the loot is picked up for you.
+- **Never offered:** quest items, crafting materials, recipes, profession tools (skinning knife, mining pick, fishing poles, enchanting rods...), the hearthstone, soul shards and class reagents, keys, bags, ammo, potions and other consumables, gear that would be an upgrade for your class, anything epic, buff food, and the best food and drink you carry for your level.
+- It only offers to make room for loot that's worth it: quest items, crafting materials, green or better, upgrades, or anything worth more than what would go.
+- **Not this one** (X) offers the next item; **Keep always** (Y) means JunkMate never offers that item again (`/junkmate keep` lists them, `/junkmate keep clear` empties the list).
+- **Restacks on its own** when your bags get down to the warning level, before warning you.
+- New commands: `/junkmate room`, `/junkmate restack`, `/junkmate destroyed`. Both new features can be switched off in the options.
+
 ## 0.6.4
 
 - **Controller:** when a fight starts, B goes straight back to its usual job, even with a JunkMate window open (it used to stay on closing the window until the fight ended). It closes the window again once the fight is over.

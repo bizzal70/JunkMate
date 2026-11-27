@@ -14,6 +14,8 @@ Sells your junk and repairs your gear whenever you open a vendor. One addon, one
 
 ## How it works
 
+- **Room.lua (0.7.0):** `UI_ERROR_MESSAGE` with `ERR_INV_FULL` while loot is open (checked 0.3 s later via `GetNumLootItems`) -> restack if `RestackPlan` frees a slot (`SplitContainerItem` + `PickupContainerItem`, one merge per 0.25 s, then `LootSlot`), else `OfferRoom(LootWanted())` shows `JunkMateRoom`. Destroy = `PickupContainerItem` + check `GetCursorInfo` + `DeleteCursorItem`, only from the button (a hardware event), ignored for 0.6 s after the window shows something new; `LootSlot` on the next `BAG_UPDATE_DELAYED`. Anything the game hasn't described (`GetItemInfo` nil) is protected. Food = `GetItemSpell` is Food/Drink; buff food = tooltip says "well fed"; best food = highest required level at or under the player's. `Bags.lua` calls `ns.AutoRestack()` at the warning level (once per 10 s). Not yet confirmed in game: whether `DeleteCursorItem` and `LootSlot` behave as the stub assumes.
+
 - On `MERCHANT_SHOW`: repair (`CanMerchantRepair`, `GetRepairAllCost`, `RepairAllItems`, only if affordable), then sell junk with the game's own `C_MerchantFrame.SellAllJunkItems` (guarded by `IsSellAllJunkEnabled` and `GetNumJunkItems`). Shift held skips both.
 - Where the client lacks `SellAllJunkItems`, it falls back to `C_Container.UseContainerItem` on each grey item with a sale value, one every 0.15 s, stopping when the vendor closes.
 - The chat line is printed a second later, from the change in `GetMoney`, because the money for sold items arrives after the call.

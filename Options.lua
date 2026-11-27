@@ -32,6 +32,8 @@ end
 
 -- A row that reads its text and tick from the saved settings each time it
 -- is refreshed, and changes them when clicked.
+ns.Fill, ns.Outline = Fill, Outline
+
 local function CreateRow(parent, y, isCheckbox, getText, isTicked, onClick)
     local row = CreateFrame("Button", nil, parent)
     row:SetSize(300, 24)
@@ -77,7 +79,7 @@ end
 
 local function CreateWindow()
     window = CreateFrame("Frame", addonName .. "Options", UIParent)
-    window:SetSize(328, 420)
+    window:SetSize(328, 476)
     window:SetPoint("CENTER")
     window:SetFrameStrata("HIGH")
     window:SetToplevel(true)
@@ -182,6 +184,15 @@ local function CreateWindow()
             ns.db.minimapButton = not ns.db.minimapButton
             ns.UpdateMinimapButton()
         end)
+
+    CreateRow(window, -380, true,
+        function() return "Offer to make room when loot won't fit" end,
+        function() return ns.db.makeRoom end,
+        function() ns.db.makeRoom = not ns.db.makeRoom end)
+    CreateRow(window, -408, true,
+        function() return "Restack when bags get nearly full" end,
+        function() return ns.db.restack end,
+        function() ns.db.restack = not ns.db.restack end)
 
     local hint = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("BOTTOMLEFT", 16, 12)

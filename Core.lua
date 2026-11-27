@@ -32,6 +32,11 @@ local defaults = {
     -- The minimap button (MinimapButton.lua), and where on the rim it sits.
     minimapButton = true,
     minimapAngle = 1.9,
+    -- Making room when loot will not fit (Room.lua), restacking when the
+    -- bags get nearly full, and items never to offer.
+    makeRoom = true,
+    restack = true,
+    keep = {},
 }
 
 function ns.Print(msg)
@@ -56,6 +61,9 @@ local function PadApply(window)
     ClearOverrideBindings(window)
     if window:IsShown() and not inFight then
         SetOverrideBinding(window, true, "PAD2", "CLICK " .. window.padClose:GetName() .. ":LeftButton")
+        for key, button in pairs(window.padKeys or {}) do
+            SetOverrideBinding(window, true, key, "CLICK " .. button .. ":LeftButton")
+        end
     end
 end
 
@@ -75,13 +83,16 @@ end)
 pcall(padFrame.RegisterEvent, padFrame, "PLAYER_REGEN_DISABLED")
 pcall(padFrame.RegisterEvent, padFrame, "PLAYER_REGEN_ENABLED")
 
-function ns.CloseWithPadB(window)
+-- `keys` (optional) gives more controller buttons a job while the window is
+-- shown: { PAD1 = "NameOfButtonToClick" }.
+function ns.CloseWithPadB(window, keys)
     -- An invisible button for the binding to press: never placed on screen,
     -- and not clickable with the mouse.
     local close = CreateFrame("Button", window:GetName() .. "PadClose", UIParent)
     close:EnableMouse(false)
     close:SetScript("OnClick", function() window:Hide() end)
     window.padClose = close
+    window.padKeys = keys
     padWindows[#padWindows + 1] = window
     window:HookScript("OnShow", function(self) pcall(PadApply, self) end)
     window:HookScript("OnHide", function(self) pcall(PadApply, self) end)
@@ -258,6 +269,34 @@ SlashCmdList.JUNKMATE = function(msg)
         ns.Print("The bags-nearly-full warning is " .. (ns.db.bagWarn and ("on, at %d free slots or fewer."):format(ns.db.bagLevel) or "off."))
         ns.RefreshOptions()
         return
+    elseif command == "room" then
+        ns.MakeRoomCommand()
+        return
+    elseif command == "restack" then
+        ns.RestackCommand()
+        return
+    elseif command == "destroyed" then
+        if #ns.destroyed == 0 then
+            ns.Print("Nothing destroyed this session.")
+        end
+        for _, entry in ipairs(ns.destroyed) do
+            ns.Print(("Destroyed %s%s (worth %s)."):format(entry.link, entry.count > 1 and (" x%d"):format(entry.count) or "", ns.Money(entry.value)))
+        end
+        return
+    elseif command == "keep" then
+        if (msg or ""):lower():find("clear", 1, true) then
+            ns.db.keep = {}
+            ns.Print("The keep list is empty again.")
+            return
+        end
+        local any = false
+        for itemID in pairs(ns.db.keep) do
+            local facts = ns.ItemFacts(itemID)
+            ns.Print("Kept: " .. (facts and (facts.link or facts.name) or ("item " .. itemID)))
+            any = true
+        end
+        if not any then ns.Print("Nothing on the keep list. Press Keep always in the make-room window to add an item.") end
+        return
     elseif command == "worn" then
         ns.db.durabilityWarn = not ns.db.durabilityWarn
         ns.UpdateDurability()
@@ -273,6 +312,10 @@ SlashCmdList.JUNKMATE = function(msg)
         ns.Print("/junkmate bags - warn when your bags are nearly full, on or off")
         ns.Print("/junkmate price - vendor prices on item tooltips, on or off")
         ns.Print("/junkmate button - show or hide the minimap button")
+        ns.Print("/junkmate room - offer the cheapest thing to destroy to free a slot")
+        ns.Print("/junkmate restack - put partial stacks together")
+        ns.Print("/junkmate keep - items never offered (keep clear to empty it)")
+        ns.Print("/junkmate destroyed - what was destroyed this session")
         ns.Print("Hold Shift while opening a vendor to skip both that time.")
         return
     end
