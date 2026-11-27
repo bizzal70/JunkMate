@@ -188,7 +188,12 @@ local function SellJunk()
             ticker:Cancel()
             return
         end
-        C_Container.UseContainerItem(entry[1], entry[2])
+        -- Check again: the bags may have changed since the list was made,
+        -- and right-clicking anything but junk here would sell it.
+        local info = C_Container.GetContainerItemInfo(entry[1], entry[2])
+        if Usable(info) and type(info) == "table" and info.quality == JUNK_QUALITY and not info.hasNoValue and not info.isLocked then
+            C_Container.UseContainerItem(entry[1], entry[2])
+        end
     end)
     return #slots
 end

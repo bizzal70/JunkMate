@@ -26,6 +26,8 @@ local AUTO_RESTACK_GAP = 10
 -- The window ignores presses this long after it shows something new, so a
 -- button already on its way down cannot destroy an item nobody has seen.
 local ARM_SECONDS = 0.6
+-- Longer when the window comes back by itself after a fight.
+local RETURN_ARM_SECONDS = 1.5
 
 local function Usable(value)
     return value ~= nil and not (issecretvalue and issecretvalue(value))
@@ -357,7 +359,7 @@ end
 function ns.RoomCandidates()
     local context = Context()
     local keep = ns.db and ns.db.keep or {}
-    local items, food = {}, {}
+    local items = {}
     local best = { food = -1, drink = -1 }
     for _, item in ipairs(ns.BagItems()) do
         item.facts = ns.ItemFacts(item.itemID)
@@ -621,7 +623,8 @@ function ns.OfferRoom(loot, always)
     end
     if not pick then
         window:Hide()
-        Say("Your bags are full, and nothing in them is something JunkMate would throw away.", always)
+        Say(loot and "Your bags are full, and nothing in them is something JunkMate would throw away."
+            or "There is nothing in your bags JunkMate would throw away.", always)
         return false
     end
     if not ns.WorthIt(loot, pick) then
@@ -647,7 +650,7 @@ function ns.OfferRoom(loot, always)
         if not tucked then
             tucked = true
             window:Hide()
-            ns.Print("Your bags are full. JunkMate will offer to make room once the fight is over.")
+            ns.Print("JunkMate will offer to make room once the fight is over.")
         end
         return true
     end
@@ -660,7 +663,10 @@ local function DestroyCurrent()
     if not current or GetTime() < armedAt then return end
     local item, loot = current.item, current.loot
     local info = C_Container.GetContainerItemInfo(item.bag, item.slot)
-    if type(info) ~= "table" or info.itemID ~= item.itemID or info.isLocked then
+    -- Still the same item and the same amount (a restack may have added to
+    -- the stack since): otherwise look again, rather than destroy more than
+    -- the window said.
+    if type(info) ~= "table" or info.itemID ~= item.itemID or info.isLocked or (info.stackCount or 1) ~= item.count then
         ns.OfferRoom(loot, true)
         return
     end
@@ -722,6 +728,7 @@ local function LootOpen()
     return GetNumLootItems and (Number(GetNumLootItems()) or 0) > 0
 end
 
+local retried = {}     -- loot slots already tried again with room in the bags
 local function OnBagsFull()
     if not (ns.db and ns.db.makeRoom) or window:IsShown() or not LootOpen() then return end
     if restackTicker then
@@ -731,10 +738,15 @@ local function OnBagsFull()
     end
     local loot = ns.LootWanted()
     if not loot then return end
-    -- Room already (a restack just finished, say): take it.
+    -- Room already (a restack just finished, say): take it. Only once per
+    -- item, so a loot that keeps failing cannot loop; destroying something
+    -- would not help it either.
     local okFree, free = pcall(ns.FreeBagSlots)
     if okFree and free and free > 0 then
-        if LootSlot then pcall(LootSlot, loot.slot) end
+        if not retried[loot.slot] and LootSlot then
+            retried[loot.slot] = true
+            pcall(LootSlot, loot.slot)
+        end
         return
     end
     -- Restacking loses nothing, so it comes first; but not for a quest item
@@ -789,7 +801,7 @@ events:SetScript("OnEvent", function(_, event, ...)
             if not ok then ns.Print("Something went wrong making room: " .. tostring(problem)) end
         end)
     elseif event == "LOOT_CLOSED" then
-        said, ns.pendingLoot = false, nil
+        said, ns.pendingLoot, retried = false, nil, {}
         if current and current.loot then
             tucked = false
             window:Hide()
@@ -807,7 +819,9 @@ events:SetScript("OnEvent", function(_, event, ...)
         if tucked then
             tucked = false
             if current then
-                armedAt = GetTime() + ARM_SECONDS
+                -- Coming back on its own, while you may be running and
+                -- jumping: a longer pause before A (or a click) counts.
+                armedAt = GetTime() + RETURN_ARM_SECONDS
                 window:Show()
             end
         end

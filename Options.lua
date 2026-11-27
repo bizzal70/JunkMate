@@ -204,6 +204,8 @@ local function CreateWindow()
 end
 
 function ns.RefreshOptions()
+    -- Called on every bag and gear change: nothing to do while it is closed.
+    if not (window and window:IsShown()) then return end
     for _, control in ipairs(controls) do
         control.Refresh()
     end
@@ -224,7 +226,7 @@ function ns.ToggleOptions()
     if window:IsShown() then
         window:Hide()
     else
-        ns.RefreshOptions()
         window:Show()
+        ns.RefreshOptions()
     end
 end

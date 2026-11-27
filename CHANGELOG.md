@@ -1,5 +1,17 @@
 # JunkMate
 
+## 0.8.3
+
+Fixes from a code review:
+
+- **Never destroys more than it showed:** if a stack grows after it's offered (restacking topped it up, say), pressing Destroy now offers it again at its new size instead of destroying the bigger stack.
+- **After a fight, the window waits a little longer before a press counts** (1.5 seconds), so pressing A to jump while it reappears can't destroy anything.
+- Loot that won't go into bags that have room is tried once, not over and over.
+- Selling junk one item at a time (only on clients without the game's own Sell All Junk) now checks each slot again before selling, so an item moved into that slot meanwhile is never sold.
+- Bank tidying finds the bank's bags on clients that name them differently, and never mistakes your own reagent bag for a bank bag.
+- The options window no longer redraws itself on every bag change while it's closed.
+- `/junkmate room` no longer says your bags are full when they aren't.
+
 ## 0.8.2
 
 - **Quest items in a fight:** if a quest item won't fit while you're fighting, the make-room window shows at once (titled "Make room for the quest item?") instead of waiting for the fight to end, and it skips restacking so it's quick. Click **Destroy** and the quest item is looted straight away, so you can grab it and run. Other loot still waits until the fight is over.

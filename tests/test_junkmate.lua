@@ -737,3 +737,68 @@ do
     BAGS[-1] = {}
     for bag = 5, 11 do BAGS[bag] = nil end
 end
+
+-- Audit fixes.
+do
+    local function Item(id, count)
+        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1 }
+    end
+    local function RunAfters()
+        local timers = AFTERS; AFTERS = {}
+        for _, fn in ipairs(timers) do fn() end
+    end
+    local room = JunkMateRoom
+    for bag = 1, 4 do BAGS[bag] = {} end
+    -- A stack that grew after it was offered is not destroyed.
+    local list = {}
+    for i = 1, 14 do list[i] = Item(9020) end
+    list[15] = Item(9011, 4)   -- better food, so the jerky is outgrown
+    list[16] = Item(9010, 3)
+    BAGS[0] = list
+    LOOTS = {}
+    Fire("PLAYER_REGEN_ENABLED")
+    SlashCmdList.JUNKMATE("room")
+    check(room:IsShown() and room.what:GetText():find("x3", 1, true), "(jerky x3 on offer)")
+    BAGS[0][16].stackCount = 8
+    NOW = NOW + 2
+    local deleted = #DELETED
+    room.destroy.__scripts.OnClick(room.destroy)
+    check(#DELETED == deleted and room.what:GetText():find("x8", 1, true), "a stack that grew after it was offered is offered again at its new size, not destroyed")
+    room:Hide(); room.__scripts.OnHide(room)
+
+    -- Loot that fails with room in the bags is tried once, not forever.
+    BAGS[0][16] = false
+    LOOTS = { { link = "item:9040", name = "Green Bracers", q = 2 } }
+    local looted = #LOOTED
+    for _ = 1, 3 do
+        Fire("UI_ERROR_MESSAGE", 3, "Inventory is full.")
+        RunAfters()
+    end
+    check(#LOOTED == looted + 1, "with room in the bags, a failed loot is tried again once, not over and over")
+    Fire("LOOT_CLOSED")
+    room:Hide(); room.__scripts.OnHide(room)
+    LOOTS = {}
+
+    -- Selling one by one checks each slot again before selling.
+    local sellAll = C_MerchantFrame.SellAllJunkItems
+    C_MerchantFrame.SellAllJunkItems = nil
+    BAGS[0] = { { quality = 0 }, { quality = 0 } }
+    USED = {}
+    local made
+    C_Timer.NewTicker = function(_, fn) made = fn end
+    Fire("MERCHANT_SHOW")
+    BAGS[0][2] = { quality = 3 }
+    local fake = { Cancel = function(self) self.cancelled = true end }
+    for _ = 1, 4 do if not fake.cancelled then made(fake) end end
+    check(table.concat(USED, " ") == "0:1", "an item swapped in while selling is not sold")
+    Fire("MERCHANT_CLOSED")
+    C_MerchantFrame.SellAllJunkItems = sellAll
+
+    -- The bank's bags on a client whose names for them are different.
+    Enum.BagIndex = { Backpack = 0, Bank = -1, ReagentBag = 5 }
+    local ids = ns.BankContainers()
+    local seen = {}
+    for _, id in ipairs(ids) do seen[id] = true end
+    check(seen[-1] and seen[6] and not seen[5] and not seen[0], "bank bags found by number when not by name, never the reagent bag")
+    Enum.BagIndex = nil
+end

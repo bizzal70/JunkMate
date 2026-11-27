@@ -32,16 +32,24 @@ function ns.BankContainers()
         end
     end
     local index = Enum and Enum.BagIndex
-    if type(index) == "table" and next(index) then
+    local named = 0
+    if type(index) == "table" then
         Add(index.Bank)
         for name, id in pairs(index) do
             if type(name) == "string" and (name:match("^BankBag_%d+$") or name:match("^CharacterBankTab_%d+$")) then
                 Add(id)
+                named = named + 1
             end
         end
-    else
+    end
+    if named == 0 then
+        -- No bank bags by name: the classic numbering, never the player's
+        -- own reagent bag.
+        local reagentBag = type(index) == "table" and Number(index.ReagentBag)
         Add(BANK_CONTAINER or -1)
-        for bag = 5, 4 + (Number(NUM_BANKBAGSLOTS) or 7) do Add(bag) end
+        for bag = 5, 4 + (Number(NUM_BANKBAGSLOTS) or 7) do
+            if bag ~= reagentBag then Add(bag) end
+        end
     end
     table.sort(ids)
     return ids
