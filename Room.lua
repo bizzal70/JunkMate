@@ -628,11 +628,11 @@ end
 -- The most wanted item left in the open loot window: { slot, link, count,
 -- score, value }. Quest items score 4, crafting materials 3, green or
 -- better and upgrades 2, anything else 1.
-function ns.LootWanted()
+function ns.LootWanted(skip)
     if not (GetNumLootItems and GetLootSlotInfo and GetLootSlotLink) then return end
     local count = Number(GetNumLootItems()) or 0
     local context, best = Context(), nil
-    for slot = 1, count do
+    for slot = 1, count do if slot ~= skip then
         local ok, _, name, quantity, currencyID, quality, _, isQuestItem, questID = pcall(GetLootSlotInfo, slot)
         local okLink, link = pcall(GetLootSlotLink, slot)
         if ok and okLink and Usable(link) and type(link) == "string" and not Number(currencyID) then
@@ -652,7 +652,7 @@ function ns.LootWanted()
                 best = { slot = slot, link = link, name = Usable(name) and name or link, count = amount, score = score, value = value }
             end
         end
-    end
+    end end
     return best
 end
 
@@ -921,14 +921,29 @@ local function LootOpen()
 end
 
 local retried = {}     -- loot slots already tried again with room in the bags
-local function OnBagsFull()
+local OnBagsFull
+
+-- After room was made and `slot` looted: anything else on the corpse that
+-- still won't fit gets its own offer, as if it had just failed to loot.
+local function LootAndContinue(slot)
+    if LootSlot then pcall(LootSlot, slot) end
+    C_Timer.After(0.6, function()
+        if not LootOpen() or window:IsShown() then return end
+        local loot = ns.LootWanted(slot)
+        if not loot then return end
+        local ok, problem = pcall(OnBagsFull, slot)
+        if not ok then ns.Print("Something went wrong making room: " .. tostring(problem)) end
+    end)
+end
+
+function OnBagsFull(skip)
     if not (ns.db and ns.db.makeRoom) or window:IsShown() or not LootOpen() then return end
     if restackTicker then
         -- Already restacking: look again once that is done.
-        C_Timer.After(0.5, function() pcall(OnBagsFull) end)
+        C_Timer.After(0.5, function() pcall(OnBagsFull, skip) end)
         return
     end
-    local loot = ns.LootWanted()
+    local loot = ns.LootWanted(skip)
     if not loot then return end
     -- Room already (a restack just finished, say): take it. Only once per
     -- item, so a loot that keeps failing cannot loop; destroying something
@@ -947,7 +962,7 @@ local function OnBagsFull()
     if freed > 0 and not (inFight and ns.IsEmergency(loot)) then
         ns.Restack(function(slots)
             SayRestacked(slots)
-            if LootOpen() and LootSlot then pcall(LootSlot, loot.slot) end
+            if LootOpen() then LootAndContinue(loot.slot) end
         end)
         return
     end
@@ -1030,7 +1045,7 @@ events:SetScript("OnEvent", function(_, event, ...)
         ns.InvalidateSurvey()
         local slot = ns.pendingLoot
         ns.pendingLoot = nil
-        if slot and LootOpen() and LootSlot then pcall(LootSlot, slot) end
+        if slot and LootOpen() then LootAndContinue(slot) end
     end
 end)
 for _, event in ipairs({ "UI_ERROR_MESSAGE", "LOOT_CLOSED", "BAG_UPDATE_DELAYED", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED",

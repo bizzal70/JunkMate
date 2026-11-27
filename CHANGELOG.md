@@ -1,5 +1,9 @@
 # JunkMate
 
+## 0.9.1
+
+- **Several items that won't fit:** after JunkMate makes room for one item and loots it, it now looks at what's still on the corpse and offers again for the next item, instead of stopping after the first. If what's left isn't worth destroying anything for (a grey worth less than the cheapest thing JunkMate would throw away), chat says so once.
+
 ## 0.9.0
 
 - **Sells more than junk:** at a vendor, after the grey items, JunkMate also sells food and drink you've outgrown and gear your class can't use, so you need to make room far less often. At most 12 a visit, so everything sold can still be bought back from the vendor's Buyback tab. Gear you can wear but isn't an upgrade is never sold, only offered when your bags are full. Switch it off in the options.

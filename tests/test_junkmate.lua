@@ -901,3 +901,50 @@ do
     Fire("MERCHANT_CLOSED")
     C_EquipmentSet = nil
 end
+
+-- Two items on a corpse, bags full: after room is made for the first, the
+-- second gets its own offer.
+do
+    ITEMS[9042] = { name = "Broken Boar Tusk", q = 0, price = 6, class = 15, sub = 0 }
+    ITEMS[9043] = { name = "Chunk of Boar Meat", q = 1, stack = 20, price = 4, class = 7, sub = 8 }
+    local function Item(id, count)
+        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1, isBound = true }
+    end
+    local function RunAfters()
+        for _ = 1, 5 do
+            local timers = AFTERS; AFTERS = {}
+            for _, fn in ipairs(timers) do fn() end
+        end
+    end
+    local room = JunkMateRoom
+    room:Hide(); room.__scripts.OnHide(room)
+    Fire("LOOT_CLOSED")
+    local list = {}
+    for i = 1, 13 do list[i] = Item(9020) end
+    list[14], list[15], list[16] = Item(9001), Item(9001), Item(9022)
+    BAGS[0] = list
+    for bag = 1, 4 do BAGS[bag] = {} end
+    LOOTS = { { link = "item:9043", name = "Chunk of Boar Meat", q = 1 }, { link = "item:9042", name = "Broken Boar Tusk", q = 0 } }
+    Fire("UI_ERROR_MESSAGE", 3, "Inventory is full.")
+    RunAfters()
+    check(room:IsShown() and room.why:GetText():find("item:9043", 1, true), "(an offer for the boar meat first)")
+    NOW = NOW + 2
+    room.destroy.__scripts.OnClick(room.destroy)
+    room.__scripts.OnHide(room)
+    BAGS[0][14] = Item(9043)   -- the meat arrives in the freed slot
+    local looted = #LOOTED
+    Fire("BAG_UPDATE_DELAYED")
+    RunAfters()
+    check(LOOTED[looted + 1] == 1 and room:IsShown() and room.why:GetText():find("item:9042", 1, true),
+        "after the meat is looted, the tusk left on the corpse gets its own offer: " .. tostring(room.why:GetText()))
+    room:Hide(); room.__scripts.OnHide(room)
+    -- With nothing cheaper than the tusk left, it says so instead.
+    BAGS[0][15] = Item(9022)
+    LOOTS[1].link, LOOTS[1].name = nil, nil
+    Fire("BAG_UPDATE_DELAYED")
+    Fire("UI_ERROR_MESSAGE", 3, "Inventory is full.")
+    RunAfters()
+    check(not room:IsShown() and PRINTED[#PRINTED]:find("item:9042 is worth less than", 1, true), "a tusk worth less than anything on offer is left, and chat says so")
+    Fire("LOOT_CLOSED")
+    LOOTS = {}
+end
