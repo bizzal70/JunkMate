@@ -677,7 +677,7 @@ ns.pendingLoot = nil     -- loot slot to take once the bags have room
 ns.destroyed = {}        -- this session's destroyed items, for /junkmate destroyed
 
 local window = CreateFrame("Frame", "JunkMateRoom", UIParent)
-window:SetSize(380, 156)
+window:SetSize(380, 176)
 -- Out of the middle of the screen: on the left, above the chat. Drag it
 -- anywhere; it remembers.
 local function PlaceWindow()
@@ -828,7 +828,7 @@ function ns.OfferRoom(loot, always)
     window.icon.texture:SetTexture(pick.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
     window.what:SetText(("Destroy %s%s (worth %s)?"):format(pick.link, Amount(pick), pick.value > 0 and ns.Money(pick.value) or "nothing"))
     if loot and loot.quest then
-        window.why:SetText(("To make room for the reward from %s."):format(loot.link))
+        window.why:SetText(("To make room for the reward from %s.\n|cffaaaaaaOr clear your bags at a vendor first and come back.|r"):format(loot.link))
     elseif loot then
         window.why:SetText(("To make room for %s%s%s."):format(loot.link, loot.count > 1 and (" x%d"):format(loot.count) or "",
             loot.value > 0 and (" (worth %s)"):format(ns.Money(loot.value)) or ""))

@@ -1,5 +1,9 @@
 # JunkMate
 
+## 0.10.1
+
+- The make-room window for a quest reward now also says: *"Or clear your bags at a vendor first and come back."* Closing it is always fine; nothing is destroyed until you press Destroy.
+
 ## 0.10.0
 
 - **Quest rewards that won't fit:** when you hand in a quest and your bags are too full for the reward, JunkMate makes room the same way it does for loot: it restacks first, then offers to destroy the cheapest thing you don't need, one press at a time, until there's enough room.

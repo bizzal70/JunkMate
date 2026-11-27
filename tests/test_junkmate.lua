@@ -983,7 +983,8 @@ do
     FullBags()
     Fire("QUEST_COMPLETE")
     check(room:IsShown() and room.title:GetText():find("quest reward", 1, true)
-        and room.why:GetText() == "To make room for the reward from Goretusk Liver Pie.", "full bags at a quest's reward window: room is offered at once: " .. tostring(room.why:GetText()))
+        and room.why:GetText():find("To make room for the reward from Goretusk Liver Pie.", 1, true)
+        and room.why:GetText():find("Or clear your bags at a vendor first and come back.", 1, true), "full bags at a quest's reward window: room is offered at once: " .. tostring(room.why:GetText()))
     NOW = NOW + 2
     room.destroy.__scripts.OnClick(room.destroy)
     room.__scripts.OnHide(room)
