@@ -2,7 +2,7 @@
 ## Title: JunkMate
 ## Notes: Sells your junk and repairs your gear whenever you open a vendor, warns when gear is wearing out or your bags are nearly full, restacks and makes room for loot, tidies the bank, finds a repairer, and shows vendor prices on tooltips. Type /junkmate.
 ## Author: bizzal70
-## Version: 0.17.0
+## Version: 0.17.1
 ## X-Curse-Project-ID: 1790702
 ## SavedVariables: JunkMateDB
 ## IconTexture: Interface\Icons\INV_Misc_Coin_02

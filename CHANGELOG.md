@@ -1,5 +1,10 @@
 # JunkMate
 
+## 0.17.1
+
+- **Learning vendors on clients that won't say how far away an NPC is:** targeting a vendor now teaches JunkMate even then (hovering still needs the distance). New: `/junkmate learn` tries to learn your target and says why if it can't.
+- The minimap coins no longer depend on one map function some clients may not have.
+
 ## 0.17.0
 
 - **Learns vendors without a visit:** hover over or target an NPC close by (within about 10 yards) whose title says they sell things (*General Trade Goods Vendor*, *Bowyer*, *Trade Supplies*, *Innkeeper* and so on), and JunkMate remembers them as a vendor: a gold coin on the minimap while you have junk, and a candidate for "Nearest vendor". Walking through a town fills them in. Trainers, guards, bankers and flight and stable masters are left out.

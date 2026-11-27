@@ -321,6 +321,9 @@ SlashCmdList.JUNKMATE = function(msg)
     elseif command == "open" then
         ns.OpenContainers(true)
         return
+    elseif command == "learn" then
+        ns.LearnTargetCommand()
+        return
     elseif command == "junkbanner" then
         if (msg or ""):lower():find("reset", 1, true) then
             ns.ResetJunkBanner()
@@ -403,6 +406,7 @@ SlashCmdList.JUNKMATE = function(msg)
         ns.Print("/junkmate open - open clams and other things that open")
         ns.Print("/junkmate repairer - the nearest repairer you've used, with a map pin")
         ns.Print("/junkmate vendor - the nearest vendor you've used, with a map pin")
+        ns.Print("/junkmate learn - learn your target as a vendor, and say why if not")
         ns.Print("/junkmate bank - tidy the open bank now")
         ns.Print("/junkmate keep - items never offered (keep clear to empty it)")
         ns.Print("/junkmate destroyed - what was destroyed this session")

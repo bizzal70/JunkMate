@@ -1517,3 +1517,30 @@ do
     UNITS.mouseover, UNITS.target = nil, nil
 end
 
+-- When the game won't say how far away an NPC is.
+do
+    UNITS.mouseover = { name = "Christopher Hewen", friendly = true }
+    UNITS.target = { name = "Christopher Hewen", friendly = true }
+    CheckInteractDistance = function() error("blocked on this client") end
+    ns.db.vendors = {}
+    Fire("UPDATE_MOUSEOVER_UNIT")
+    check(not ns.db.vendors["Christopher Hewen@1"], "distance unknown: hovering alone doesn't learn")
+    SlashCmdList.JUNKMATE("learn")
+    check(ns.db.vendors["Christopher Hewen@1"] and PRINTED[#PRINTED]:find("Christopher Hewen: learned (distance unknown", 1, true),
+        "but targeting does, and /junkmate learn says so: " .. PRINTED[#PRINTED])
+    UNITS.target = { name = "Thor", friendly = true }
+    SlashCmdList.JUNKMATE("learn")
+    check(PRINTED[#PRINTED]:find("isn't a seller's", 1, true), "and says why when it can't: " .. PRINTED[#PRINTED])
+    -- Map size worked out from the corners when the game won't give it.
+    local size = C_Map.GetMapWorldSize
+    C_Map.GetMapWorldSize = nil
+    ns.db.vendors = { ["Christopher Hewen@1"] = { name = "Christopher Hewen", map = 1, x = 0.45, y = 0.4, faction = "Alliance" } }
+    PLAYER.map, PLAYER.x, PLAYER.y = 1, 0.4, 0.4
+    ns.junkCount = 1
+    ns.UpdateVendorPins()
+    local pin = ns.vendorPins[1]
+    check(pin and pin:IsShown() and math.abs(pin.__point[4] - 35) < 0.01, "the coins still find their place without the map-size function")
+    C_Map.GetMapWorldSize = size
+    UNITS.mouseover, UNITS.target = nil, nil
+end
+

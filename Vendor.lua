@@ -173,14 +173,32 @@ local function Rotation()
     return 0, 1
 end
 
+-- A map's size in yards: from the game where it says, else worked out from
+-- the world positions of two corners.
+local function MapSize(mapID)
+    if C_Map.GetMapWorldSize then
+        local ok, width, height = pcall(C_Map.GetMapWorldSize, mapID)
+        if ok and type(width) == "number" and width > 0 and type(height) == "number" and height > 0 then return width, height end
+    end
+    if C_Map.GetWorldPosFromMapPos and CreateVector2D then
+        local ok1, _, a = pcall(C_Map.GetWorldPosFromMapPos, mapID, CreateVector2D(0, 0))
+        local ok2, _, b = pcall(C_Map.GetWorldPosFromMapPos, mapID, CreateVector2D(1, 1))
+        if ok1 and ok2 and a and b then
+            local ax, ay = a:GetXY()
+            local bx, by = b:GetXY()
+            return math.abs(bx - ax), math.abs(by - ay)
+        end
+    end
+end
+
 function ns.UpdateVendorPins()
     local used = 0
     local db = ns.db
     if db and db.vendorMinimap and (ns.junkCount or 0) > 0 and db.vendors
-            and C_Map and C_Map.GetBestMapForUnit and C_Map.GetMapWorldSize then
+            and C_Map and C_Map.GetBestMapForUnit then
         local mapID = C_Map.GetBestMapForUnit("player")
         local ok, pos = pcall(C_Map.GetPlayerMapPosition, mapID, "player")
-        local width, height = C_Map.GetMapWorldSize(mapID)
+        local width, height = MapSize(mapID)
         if mapID and ok and pos and type(width) == "number" and type(height) == "number" then
             local px, py = pos:GetXY()
             local halfWidth = Minimap:GetWidth() / 2
@@ -286,33 +304,57 @@ function ns.IsSellerTitle(title)
     return false
 end
 
--- Remembers `unit` as a vendor if it is one, close by. Returns whether it did.
+-- Whether `unit` is close enough to place at your position: true, false,
+-- or nil when the game won't say (some clients restrict the check).
+local function IsClose(unit)
+    if not CheckInteractDistance then return nil end
+    local ok, close = pcall(CheckInteractDistance, unit, 3)
+    if not ok or (issecretvalue and issecretvalue(close)) then return nil end
+    return close and true or false
+end
+
+-- Remembers `unit` as a vendor if it is one, close by. Returns whether it
+-- did, and why not (for /junkmate learn).
 function ns.LearnVendor(unit)
     local db = ns.db
-    if not db or (InCombatLockdown and InCombatLockdown()) then return false end
-    if not (UnitExists and UnitExists(unit)) or (UnitIsPlayer and UnitIsPlayer(unit))
-            or (UnitPlayerControlled and UnitPlayerControlled(unit)) then return false end
-    if UnitCanAttack and UnitCanAttack("player", unit) then return false end
-    if not CheckInteractDistance then return false end
-    local ok, close = pcall(CheckInteractDistance, unit, 3)
-    if not ok or not close then return false end
-    if not ns.IsSellerTitle(UnitTitle(unit)) then return false end
+    if not db then return false, "not loaded yet" end
+    if InCombatLockdown and InCombatLockdown() then return false, "in a fight" end
+    if not (UnitExists and UnitExists(unit)) then return false, "nobody there" end
+    if (UnitIsPlayer and UnitIsPlayer(unit)) or (UnitPlayerControlled and UnitPlayerControlled(unit)) then
+        return false, "a player or a pet"
+    end
+    if UnitCanAttack and UnitCanAttack("player", unit) then return false, "someone you could attack" end
+    local title = UnitTitle(unit)
+    if not ns.IsSellerTitle(title) then
+        return false, title and ("their title (\"" .. title .. "\") isn't a seller's") or "no title found on their tooltip"
+    end
+    local close = IsClose(unit)
+    if close == false then return false, "too far away to place (come within about 10 yards)" end
+    -- The game won't say how close: only trust a target, chosen on purpose.
+    if close == nil and unit ~= "target" then return false, "distance unknown here: target them instead" end
     local name = UnitName(unit)
-    if type(name) ~= "string" or name == "" or (issecretvalue and issecretvalue(name)) then return false end
+    if type(name) ~= "string" or name == "" or (issecretvalue and issecretvalue(name)) then return false, "no name" end
     local mapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
-    if not mapID then return false end
+    if not mapID then return false, "no map here" end
     local key = name .. "@" .. mapID
     db.vendors = db.vendors or {}
     -- A vendor whose shop you've opened is already in the right place.
     local known = db.vendors[key]
-    if known and not known.learned then return false end
+    if known and not known.learned then return false, "already known from their shop" end
     local okPos, pos = pcall(C_Map.GetPlayerMapPosition, mapID, "player")
-    if not okPos or not pos then return false end
+    if not okPos or not pos then return false, "your position isn't available here" end
     local x, y = pos:GetXY()
     db.vendors[key] = { name = name, map = mapID, x = x, y = y, learned = true,
         faction = UnitFactionGroup and UnitFactionGroup("player") or nil, seen = time() }
     if not known then pcall(ns.UpdateVendorPins) end
-    return true
+    return true, close == nil and "learned (distance unknown, so at your position)" or "learned"
+end
+
+-- /junkmate learn: try to learn the target, and say what happened.
+function ns.LearnTargetCommand()
+    local name = UnitName and UnitName("target") or "your target"
+    local learned, why = ns.LearnVendor("target")
+    ns.Print(("%s: %s."):format(type(name) == "string" and name or "Target", why or (learned and "learned" or "not learned")))
 end
 
 ----------------------------------------------------------------------------
