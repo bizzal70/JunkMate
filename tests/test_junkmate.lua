@@ -1466,3 +1466,54 @@ do
     ns.db.vendorMinimap = true
 end
 
+-- Learning vendors by hovering or targeting them close by.
+do
+    local player = PLAYER
+    player.map, player.x, player.y = 1, 0.4, 0.4
+    local TITLES = { ["Christopher Hewen"] = "General Trade Goods Vendor", ["Thor"] = "Gryphon Master",
+        ["Smith Argus"] = "Weaponsmith Trainer", ["Harold"] = nil }
+    local CLOSE = true
+    CheckInteractDistance = function() return CLOSE end
+    C_TooltipInfo.GetUnit = function(unit)
+        local name = UNITS[unit] and UNITS[unit].name
+        local title = TITLES[name]
+        local lines = { { leftText = name } }
+        if title then lines[#lines + 1] = { leftText = title } end
+        lines[#lines + 1] = { leftText = "Level 30 Humanoid" }
+        return { lines = lines }
+    end
+    UNITS.mouseover = { name = "Christopher Hewen", friendly = true }
+    UnitCanAttack = function(_, unit) return UNITS[unit] and not UNITS[unit].friendly or false end
+    ns.db.vendors = {}
+    Fire("UPDATE_MOUSEOVER_UNIT")
+    local record = ns.db.vendors["Christopher Hewen@1"]
+    check(record and record.learned and math.abs(record.x - 0.4) < 0.001, "hovering a vendor close by remembers them, where you stand")
+    UNITS.mouseover = { name = "Thor", friendly = true }
+    Fire("UPDATE_MOUSEOVER_UNIT")
+    UNITS.mouseover = { name = "Smith Argus", friendly = true }
+    Fire("UPDATE_MOUSEOVER_UNIT")
+    UNITS.mouseover = { name = "Harold", friendly = true }
+    Fire("UPDATE_MOUSEOVER_UNIT")
+    check(ns.IsSellerTitle("Argent Dawn Quartermaster") and not ns.IsSellerTitle("Stable Master"), "quartermasters are vendors; stable masters aren't")
+    check(not ns.db.vendors["Thor@1"] and not ns.db.vendors["Smith Argus@1"] and not ns.db.vendors["Harold@1"],
+        "flight masters, trainers and NPCs without a title are not vendors")
+    CLOSE = false
+    TITLES["Far Merchant"] = "Wine & Spirits Merchant"
+    UNITS.target = { name = "Far Merchant", friendly = true }
+    Fire("PLAYER_TARGET_CHANGED")
+    check(not ns.db.vendors["Far Merchant@1"], "a vendor too far away to place is not learned")
+    CLOSE = true
+    Fire("PLAYER_TARGET_CHANGED")
+    check(ns.db.vendors["Far Merchant@1"], "targeting one close by is")
+    -- A shop you've opened keeps its exact spot.
+    ns.db.vendors["Christopher Hewen@1"] = { name = "Christopher Hewen", map = 1, x = 0.45, y = 0.45, faction = "Alliance" }
+    UNITS.mouseover = { name = "Christopher Hewen", friendly = true }
+    Fire("UPDATE_MOUSEOVER_UNIT")
+    check(ns.db.vendors["Christopher Hewen@1"].x == 0.45 and not ns.db.vendors["Christopher Hewen@1"].learned, "a vendor whose shop you've opened keeps its exact spot")
+    UNITS.mouseover = { name = "Christopher Hewen", friendly = false }
+    ns.db.vendors = {}
+    Fire("UPDATE_MOUSEOVER_UNIT")
+    check(not ns.db.vendors["Christopher Hewen@1"], "an NPC you could attack is never learned")
+    UNITS.mouseover, UNITS.target = nil, nil
+end
+

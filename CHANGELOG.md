@@ -1,5 +1,11 @@
 # JunkMate
 
+## 0.17.0
+
+- **Learns vendors without a visit:** hover over or target an NPC close by (within about 10 yards) whose title says they sell things (*General Trade Goods Vendor*, *Bowyer*, *Trade Supplies*, *Innkeeper* and so on), and JunkMate remembers them as a vendor: a gold coin on the minimap while you have junk, and a candidate for "Nearest vendor". Walking through a town fills them in. Trainers, guards, bankers and flight and stable masters are left out.
+- The game doesn't tell addons where an NPC stands, so a vendor is learned at your own position, which is why only close ones count. A vendor whose shop you've opened keeps its exact spot.
+- The title words are English, so on other languages' clients only opening a shop teaches JunkMate.
+
 ## 0.16.0
 
 - **Vendors on the minimap, only while you have junk to sell:**

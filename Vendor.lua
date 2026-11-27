@@ -241,6 +241,81 @@ if C_Timer and C_Timer.NewTicker then
 end
 
 ----------------------------------------------------------------------------
+-- Learning vendors without visiting them
+----------------------------------------------------------------------------
+
+-- An NPC hovered over or targeted, close by, whose title under their name
+-- says they sell things ("General Trade Goods Vendor", "Bowyer", "Trade
+-- Supplies") is remembered as a vendor. The game doesn't say where an NPC
+-- stands, only where you are, so only NPCs within about 10 yards are
+-- learned, at your position. The title words are English, so on other
+-- clients only opening a shop teaches JunkMate.
+local SELLER_WORDS = {
+    "vendor", "merchant", "supplies", "supplier", "goods", "trader", "trade", "provisioner",
+    "bowyer", "armorer", "armorsmith", "weaponsmith", "gunsmith", "fletcher", "innkeeper",
+    "food & drink", "baker", "butcher", "grocer", "bartender", "wine", "reagent", "poison",
+    "tradesman", "outfitter", "quartermaster",
+}
+local NOT_SELLER_WORDS = { "trainer", "guard", "flight master", "gryphon master", "wind rider master",
+    "hippogryph master", "bat handler", "stable master", "banker", "auctioneer", "battlemaster" }
+
+-- The title under an NPC's name, from their tooltip, or nil.
+local function UnitTitle(unit)
+    if not (C_TooltipInfo and C_TooltipInfo.GetUnit) then return end
+    local ok, data = pcall(C_TooltipInfo.GetUnit, unit)
+    if not ok or type(data) ~= "table" or type(data.lines) ~= "table" then return end
+    local levelWord = (type(LEVEL) == "string" and LEVEL or "Level"):lower()
+    for index = 2, math.min(3, #data.lines) do
+        local text = data.lines[index].leftText
+        if type(text) == "string" and not (issecretvalue and issecretvalue(text))
+                and text ~= "" and not text:lower():find("^" .. levelWord) then
+            return text
+        end
+    end
+end
+
+function ns.IsSellerTitle(title)
+    if type(title) ~= "string" then return false end
+    title = title:lower()
+    for _, word in ipairs(NOT_SELLER_WORDS) do
+        if title:find(word, 1, true) then return false end
+    end
+    for _, word in ipairs(SELLER_WORDS) do
+        if title:find(word, 1, true) then return true end
+    end
+    return false
+end
+
+-- Remembers `unit` as a vendor if it is one, close by. Returns whether it did.
+function ns.LearnVendor(unit)
+    local db = ns.db
+    if not db or (InCombatLockdown and InCombatLockdown()) then return false end
+    if not (UnitExists and UnitExists(unit)) or (UnitIsPlayer and UnitIsPlayer(unit))
+            or (UnitPlayerControlled and UnitPlayerControlled(unit)) then return false end
+    if UnitCanAttack and UnitCanAttack("player", unit) then return false end
+    if not CheckInteractDistance then return false end
+    local ok, close = pcall(CheckInteractDistance, unit, 3)
+    if not ok or not close then return false end
+    if not ns.IsSellerTitle(UnitTitle(unit)) then return false end
+    local name = UnitName(unit)
+    if type(name) ~= "string" or name == "" or (issecretvalue and issecretvalue(name)) then return false end
+    local mapID = C_Map and C_Map.GetBestMapForUnit and C_Map.GetBestMapForUnit("player")
+    if not mapID then return false end
+    local key = name .. "@" .. mapID
+    db.vendors = db.vendors or {}
+    -- A vendor whose shop you've opened is already in the right place.
+    local known = db.vendors[key]
+    if known and not known.learned then return false end
+    local okPos, pos = pcall(C_Map.GetPlayerMapPosition, mapID, "player")
+    if not okPos or not pos then return false end
+    local x, y = pos:GetXY()
+    db.vendors[key] = { name = name, map = mapID, x = x, y = y, learned = true,
+        faction = UnitFactionGroup and UnitFactionGroup("player") or nil, seen = time() }
+    if not known then pcall(ns.UpdateVendorPins) end
+    return true
+end
+
+----------------------------------------------------------------------------
 -- Known vendors on tooltips and when targeted
 ----------------------------------------------------------------------------
 
@@ -272,7 +347,11 @@ local events = CreateFrame("Frame")
 events:SetScript("OnEvent", function(_, event)
     if not ns.db then return end
     if event == "PLAYER_TARGET_CHANGED" then
+        pcall(ns.LearnVendor, "target")
         pcall(ns.OnVendorTargeted)
+        return
+    elseif event == "UPDATE_MOUSEOVER_UNIT" then
+        pcall(ns.LearnVendor, "mouseover")
         return
     elseif event == "MERCHANT_SHOW" then
         notice:Hide()
@@ -288,6 +367,6 @@ events:SetScript("OnEvent", function(_, event)
     pcall(ns.UpdateVendorHelp)
 end)
 for _, event in ipairs({ "BAG_UPDATE_DELAYED", "PLAYER_ENTERING_WORLD", "MERCHANT_SHOW", "MERCHANT_CLOSED",
-        "PLAYER_TARGET_CHANGED", "PLAYER_LOGIN" }) do
+        "PLAYER_TARGET_CHANGED", "UPDATE_MOUSEOVER_UNIT", "PLAYER_LOGIN" }) do
     pcall(events.RegisterEvent, events, event)
 end
