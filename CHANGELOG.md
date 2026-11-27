@@ -1,5 +1,12 @@
 # JunkMate
 
+## 0.11.0
+
+- **Opens clams and other "Right Click to Open" items** when your bags get down to the warning level, before warning you. Nine clams become one stack of clam meat and the odd pearl, which frees several slots. One at a time, taking what's inside each (even with auto loot off), and chat says how many slots it freed. Type `/junkmate open` to do it now.
+- Never in a fight, never while you're looting something else, and never with a vendor, bank, mailbox, trade or auction window open, where "opening" an item would sell, bank, mail or trade it instead. It stops if one of those opens part way.
+- Locked boxes are left alone, and it waits for one free bag slot so what's inside has somewhere to go.
+- The tooltip line on things that open says JunkMate will open them when your bags get full. Switch it off in the options.
+
 ## 0.10.2
 
 - **Quest rewards when your bags hold nothing junk:** handing in a quest with bags full of things JunkMate normally keeps used to stop at *"nothing in them is something JunkMate would throw away"*. Now, for a quest reward or a quest item only, it offers the cheapest everyday thing it normally keeps (potions, food and drink, or crafting materials), clearly marked *"Normally kept: a crafting material."* Quest items, profession tools, the hearthstone, your keep list, equipment sets and epics are still never offered.

@@ -43,6 +43,9 @@ local defaults = {
     -- on tooltips what JunkMate does with an item (Room.lua).
     sellExtras = true,
     whyTooltip = true,
+    -- Open clams and other "Right Click to Open" items when the bags get
+    -- nearly full (Open.lua).
+    openContainers = true,
 }
 
 -- Names in the game's Key Bindings window (Bindings.xml).
@@ -301,6 +304,9 @@ SlashCmdList.JUNKMATE = function(msg)
     elseif command == "restack" then
         ns.RestackCommand()
         return
+    elseif command == "open" then
+        ns.OpenContainers(true)
+        return
     elseif command == "destroyed" then
         if #ns.destroyed == 0 then
             ns.Print("Nothing destroyed this session.")
@@ -341,6 +347,7 @@ SlashCmdList.JUNKMATE = function(msg)
         ns.Print("/junkmate button - show or hide the minimap button")
         ns.Print("/junkmate room - offer the cheapest thing to destroy to free a slot (room reset puts the window back)")
         ns.Print("/junkmate restack - put partial stacks together")
+        ns.Print("/junkmate open - open clams and other things that open")
         ns.Print("/junkmate bank - tidy the open bank now")
         ns.Print("/junkmate keep - items never offered (keep clear to empty it)")
         ns.Print("/junkmate destroyed - what was destroyed this session")

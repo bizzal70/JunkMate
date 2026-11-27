@@ -70,7 +70,7 @@ function ns.ContainerItems(bags)
                 items[#items + 1] = {
                     bag = bag, slot = slot, itemID = info.itemID, count = Number(info.stackCount) or 1,
                     quality = Number(info.quality), locked = info.isLocked and true or false,
-                    noValue = info.hasNoValue and true or false, bound = info.isBound, link = Usable(info.hyperlink) and info.hyperlink or nil,
+                    noValue = info.hasNoValue and true or false, bound = info.isBound, opens = info.hasLoot and true or false, link = Usable(info.hyperlink) and info.hyperlink or nil,
                     icon = info.iconFileID,
                 }
             end
@@ -465,6 +465,7 @@ function ns.Survey(fresh)
         local facts = item.facts
         if not facts or item.locked then return end
         if keep[item.itemID] then return nil, "on your keep list" end
+        if item.opens then return nil, "it opens; JunkMate opens it when your bags get full" end
         if C_Container.GetContainerItemQuestInfo then
             local ok, quest = pcall(C_Container.GetContainerItemQuestInfo, item.bag, item.slot)
             if ok and type(quest) == "table" and (quest.isQuestItem or quest.questID) then return nil, "a quest item" end

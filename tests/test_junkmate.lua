@@ -232,7 +232,7 @@ local rows = {}
 for _, f in ipairs(Frames()) do
     if rawget(f, "Refresh") and f.__scripts.OnClick then rows[#rows + 1] = f end
 end
-check(#rows == 14, "the options have fourteen controls")
+check(#rows == 15, "the options have fifteen controls")
 local statusLine
 for _, f in ipairs(Frames()) do
     if rawget(f, "__text") and f.__text:find("^Gear") then statusLine = f end
@@ -1082,4 +1082,105 @@ do
     Fire("LOOT_CLOSED")
     LOOTS = {}
     GetNumQuestRewards, GetNumQuestChoices = nil, nil
+end
+
+-- Opening clams and other things that open (Open.lua).
+do
+    ITEMS[9090] = { name = "Small Barnacled Clam", q = 1, price = 0, class = 15, sub = 0 }
+    ITEMS[9091] = { name = "Battered Junkbox", q = 1, price = 0, class = 15, sub = 0 }
+    ITEMS[9092] = { name = "Clam Meat", q = 1, stack = 20, price = 2, class = 7, sub = 8 }
+    local function Item(id, count, opens)
+        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1,
+            isBound = true, hasLoot = opens or nil }
+    end
+    local ticks = {}
+    C_Timer.NewTicker = function(_, fn)
+        local t = { fn = fn, Cancel = function(self) self.cancelled = true end }
+        ticks[#ticks + 1] = t
+        return t
+    end
+    local locked = {}
+    C_TooltipInfo.GetBagItem = function(bag, slot)
+        local item = BAGS[bag][slot]
+        return { lines = (item and locked[item.itemID]) and { { leftText = "Locked" } } or {} }
+    end
+    local room = JunkMateRoom
+    room:Hide(); room.__scripts.OnHide(room)
+    ns.merchantOpen, ns.bankOpen = false, false
+    LOOTS = {}
+    USED, LOOTED = {}, {}
+    local function Bags()
+        local list = {}
+        for i = 1, 12 do list[i] = Item(9022) end
+        list[13], list[14], list[15] = Item(9090, 1, true), Item(9090, 1, true), Item(9090, 1, true)
+        list[16] = false
+        BAGS[0] = list
+        for bag = 1, 4 do BAGS[bag] = {} end
+    end
+    -- One tick of the opener; if it just opened a clam, its meat is looted
+    -- and the clam is gone.
+    local function Tick()
+        local t = ticks[#ticks]
+        if not t or t.cancelled then return end
+        local used = #USED
+        t.fn(t)
+        if #USED > used then
+            local bag, slot = USED[#USED]:match("(%d+):(%d+)")
+            LOOTS = { { link = "item:9092", name = "Clam Meat", q = 1 } }
+            Fire("LOOT_READY")
+            local meat
+            for i = 1, 16 do if BAGS[0][i] and BAGS[0][i].itemID == 9092 then meat = BAGS[0][i] end end
+            if meat then meat.stackCount = meat.stackCount + 1; BAGS[0][tonumber(slot)] = false
+            else BAGS[0][tonumber(slot)] = Item(9092, 1) end
+            LOOTS = {}
+        end
+    end
+
+    Bags()
+    NOW = NOW + 100
+    local said = #PRINTED
+    Fire("BAG_UPDATE_DELAYED")
+    check(#ticks == 1 and #PRINTED == said, "down to the warning with clams in the bags: they are opened, before any warning")
+    for _ = 1, 6 do Tick() end
+    check(table.concat(USED, " ") == "0:13 0:14 0:15" and #LOOTED >= 3, "each clam is opened in turn, and what's inside taken")
+    check(PRINTED[#PRINTED]:find("Opened 3 items (2 bag slots freed).", 1, true) ~= nil, "then it says what that freed: " .. PRINTED[#PRINTED])
+
+    -- Never at a vendor, where opening would sell it.
+    Bags(); USED = {}; ticks = {}
+    ns.merchantOpen = true
+    SlashCmdList.JUNKMATE("open")
+    check(#ticks == 0 and PRINTED[#PRINTED]:find("won't open things at a vendor or the bank", 1, true), "never at a vendor, where 'opening' would sell it")
+    ns.merchantOpen = false
+    MailFrame = CreateFrame("Frame", "MailFrame"); MailFrame:Show()
+    SlashCmdList.JUNKMATE("open")
+    check(#ticks == 0 and PRINTED[#PRINTED]:find("with that window open", 1, true), "nor with the mailbox open")
+    MailFrame:Hide()
+
+    -- A vendor opened part way: it stops.
+    SlashCmdList.JUNKMATE("open")
+    Tick()
+    ns.merchantOpen = true
+    Tick()
+    check(#USED == 1 and PRINTED[#PRINTED]:find("Stopped: at a vendor or the bank.", 1, true), "opening a vendor part way stops it: " .. PRINTED[#PRINTED])
+    ns.merchantOpen = false
+
+    -- Locked boxes are left alone; full bags can't take what's inside.
+    Bags(); USED = {}; ticks = {}
+    BAGS[0][13], BAGS[0][14], BAGS[0][15] = Item(9091, 1, true), Item(9022), Item(9022)
+    locked[9091] = true
+    SlashCmdList.JUNKMATE("open")
+    check(#ticks == 0 and PRINTED[#PRINTED] == "|cffd9a066JunkMate|r: Nothing in your bags to open.", "a locked box is left alone")
+    locked[9091] = nil
+    BAGS[0][16] = Item(9022)
+    SlashCmdList.JUNKMATE("open")
+    check(#ticks == 0 and PRINTED[#PRINTED]:find("Free one slot first", 1, true), "with no free slot, it says one is needed first")
+    Fire("BAG_UPDATE_DELAYED")
+    local item = ns.Survey(true).bySlot["0:13"]
+    check(item and item.reason == "it opens; JunkMate opens it when your bags get full", "the tooltip says it will be opened")
+    ns.db.openContainers = false
+    BAGS[0][16] = false
+    NOW = NOW + 100
+    Fire("BAG_UPDATE_DELAYED")
+    check(#ticks == 0, "with the option off, nothing is opened")
+    ns.db.openContainers = true
 end

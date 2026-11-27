@@ -79,7 +79,7 @@ end
 
 local function CreateWindow()
     window = CreateFrame("Frame", addonName .. "Options", UIParent)
-    window:SetSize(328, 560)
+    window:SetSize(328, 588)
     window:SetPoint("CENTER")
     window:SetFrameStrata("HIGH")
     window:SetToplevel(true)
@@ -205,6 +205,10 @@ local function CreateWindow()
         function() return "Say on tooltips what JunkMate does" end,
         function() return ns.db.whyTooltip end,
         function() ns.db.whyTooltip = not ns.db.whyTooltip end)
+    CreateRow(window, -520, true,
+        function() return "Open clams and the like as bags fill" end,
+        function() return ns.db.openContainers end,
+        function() ns.db.openContainers = not ns.db.openContainers end)
 
     local hint = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("BOTTOMLEFT", 16, 12)

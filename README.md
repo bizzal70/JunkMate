@@ -35,6 +35,8 @@ The window opens on the left of the screen, above the chat, so it never covers t
 
 **Quest rewards too:** if your bags are too full for a quest's reward, JunkMate makes room the same way, then hands the quest in for you (or tells you to talk to the quest giver again). It never chooses a reward for you.
 
+**Opens clams and the like.** When your bags get down to the warning level, JunkMate opens clams and other "Right Click to Open" items and takes what's inside, which frees slots (nine clams become one stack of meat). Never in a fight, and never with a vendor, bank, mailbox, trade or auction window open, where opening would sell or move the item instead. Locked boxes are left alone. `/junkmate open` does it now.
+
 JunkMate also **restacks on its own** when your bags get down to the warning level, before warning you.
 
 **Tidies the bank.** When you open your bank, JunkMate puts the bank's partial stacks together, then tops up its partial stacks of crafting materials from your bags (15 Linen Cloth in the bank and 7 in your bags: 5 go in to make 20, and 2 stay with you), and says in chat what it did. Only crafting materials move, and only onto stacks already in the bank, so the food, potions, ammo and reagents you carry stay with you and nothing lands in an empty bank slot. Hold **Shift** while opening the bank to skip it.
