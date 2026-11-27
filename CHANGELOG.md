@@ -1,5 +1,13 @@
 # JunkMate
 
+## 0.10.0
+
+- **Quest rewards that won't fit:** when you hand in a quest and your bags are too full for the reward, JunkMate makes room the same way it does for loot: it restacks first, then offers to destroy the cheapest thing you don't need, one press at a time, until there's enough room.
+  - If the quest window is still open, the quest is then handed in for you.
+  - If the game has closed the quest window (it does when the hand-in fails), chat says to talk to the quest giver again.
+  - If there's a reward to choose, JunkMate never chooses: it tells you there's room and you pick.
+  - A reward that stacks onto one you already carry needs no room, so nothing is offered for it.
+
 ## 0.9.2
 
 - The make-room window now shows what the loot is worth too, so you can compare at a glance: *"Destroy Patchwork Bracers (worth 14c)? To make room for Chunk of Boar Meat x2 (worth 8c)."* Quest items and other loot vendors won't buy show no price.

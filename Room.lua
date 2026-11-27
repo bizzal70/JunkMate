@@ -827,7 +827,9 @@ function ns.OfferRoom(loot, always)
     current = { item = pick, loot = loot }
     window.icon.texture:SetTexture(pick.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
     window.what:SetText(("Destroy %s%s (worth %s)?"):format(pick.link, Amount(pick), pick.value > 0 and ns.Money(pick.value) or "nothing"))
-    if loot then
+    if loot and loot.quest then
+        window.why:SetText(("To make room for the reward from %s."):format(loot.link))
+    elseif loot then
         window.why:SetText(("To make room for %s%s%s."):format(loot.link, loot.count > 1 and (" x%d"):format(loot.count) or "",
             loot.value > 0 and (" (worth %s)"):format(ns.Money(loot.value)) or ""))
     else
@@ -835,7 +837,8 @@ function ns.OfferRoom(loot, always)
     end
     armedAt = GetTime() + ARM_SECONDS
     local emergency = ns.IsEmergency(loot)
-    window.title:SetText(emergency and "|cffffd100Make room for the quest item?|r" or "Make room?")
+    window.title:SetText(loot and loot.quest and "|cffffd100Make room for your quest reward?|r"
+        or emergency and "|cffffd100Make room for the quest item?|r" or "Make room?")
     hint:SetText(inFight and "In a fight: click Destroy, or press your JunkMate key binding"
         or "Controller: A destroy, X not this one, Y keep always, B close")
     if inFight and not emergency then
@@ -882,6 +885,7 @@ local function DestroyCurrent()
     ns.destroyed[#ns.destroyed + 1] = { link = item.link, count = item.count, value = item.value }
     ns.Print(("Destroyed %s%s (worth %s) to make room."):format(item.link, Amount(item), ns.Money(item.value)))
     ns.pendingLoot = loot and loot.slot or nil
+    ns.pendingQuest = loot and loot.quest or false
     window:Hide()
 end
 
@@ -970,6 +974,132 @@ function OnBagsFull(skip)
     ns.OfferRoom(loot)
 end
 
+----------------------------------------------------------------------------
+-- When a quest reward will not fit
+----------------------------------------------------------------------------
+
+-- Handing in a quest with full bags fails ("Goretusk Liver Pie failed:
+-- Inventory is full.") and the quest window closes. When the reward window
+-- opens, JunkMate notes how many bag slots the rewards need (a reward that
+-- stacks onto one you carry needs none; a choice of rewards needs one). If
+-- the bags are short, or the hand-in fails, it restacks or offers to make
+-- room until there is enough. Then, if the quest window is still open and
+-- there is no reward to choose, it hands the quest in; otherwise it says
+-- to talk to the quest giver again. It never chooses a reward for you.
+
+local questOpen = false
+local lastQuest       -- { title, need, choices, seen } from the reward window
+ns.pendingQuest = false
+
+-- Bag slots the open quest's rewards need, and how many rewards there are
+-- to choose from.
+function ns.QuestRewardSlots()
+    local rewards = GetNumQuestRewards and Number(GetNumQuestRewards()) or 0
+    local choices = GetNumQuestChoices and Number(GetNumQuestChoices()) or 0
+    local room = {}   -- itemID -> room left in the partial stacks carried
+    for _, item in ipairs(ns.BagItems()) do
+        local facts = ns.ItemFacts(item.itemID)
+        if facts and facts.maxStack > item.count then
+            room[item.itemID] = (room[item.itemID] or 0) + facts.maxStack - item.count
+        end
+    end
+    local need = choices > 0 and 1 or 0
+    for index = 1, rewards do
+        local count = 1
+        if GetQuestItemInfo then
+            local ok, _, _, amount = pcall(GetQuestItemInfo, "reward", index)
+            if ok and Number(amount) then count = amount end
+        end
+        local itemID
+        if GetQuestItemLink then
+            local ok, link = pcall(GetQuestItemLink, "reward", index)
+            if ok and Usable(link) and type(link) == "string" then itemID = tonumber(link:match("item:(%d+)")) end
+        end
+        if itemID and (room[itemID] or 0) >= count then
+            room[itemID] = room[itemID] - count
+        else
+            need = need + 1
+        end
+    end
+    return need, choices
+end
+
+-- The game's "<quest> failed: Inventory is full." in this client's language.
+local QUEST_FULL_PATTERN = "^" .. ((ERR_QUEST_FAILED_BAG_FULL_S or "%s failed: Inventory is full.")
+    :gsub("([%^%$%(%)%.%[%]%*%+%-%?])", "%%%1"):gsub("%%s", "(.+)")) .. "$"
+
+function ns.QuestFailedFull(...)
+    for index = 1, select("#", ...) do
+        local text = select(index, ...)
+        if Usable(text) and type(text) == "string" then
+            local title = text:match(QUEST_FULL_PATTERN)
+            if title then return title end
+        end
+    end
+end
+
+local function FreeSlots()
+    local ok, free = pcall(ns.FreeBagSlots)
+    return ok and free or 0
+end
+
+local function QuestAsLoot()
+    return { quest = true, score = 4, value = 0, count = 1, link = lastQuest.title }
+end
+
+-- Is there room for the quest's rewards; if not, restack or offer to make
+-- room. `handIn`: once there is room, hand it in (or say how).
+local function OnQuestFull(handIn)
+    if not (ns.db and ns.db.makeRoom) or not lastQuest or window:IsShown() then return end
+    if restackTicker then
+        C_Timer.After(0.5, function() pcall(OnQuestFull, handIn) end)
+        return
+    end
+    if FreeSlots() >= lastQuest.need then
+        if not handIn then return end
+        if questOpen and lastQuest.choices == 0 and GetQuestReward then
+            pcall(GetQuestReward, 0)
+        elseif questOpen then
+            ns.Print("There's room for your quest reward now: pick it and complete the quest.")
+        else
+            ns.Print(("There's room for the reward from %s now: talk to the quest giver again to hand it in."):format(lastQuest.title))
+        end
+        return
+    end
+    local _, freed = ns.RestackPlan()
+    if freed > 0 then
+        ns.Restack(function(slots)
+            SayRestacked(slots)
+            C_Timer.After(0.3, function() pcall(OnQuestFull, true) end)
+        end)
+        return
+    end
+    ns.OfferRoom(QuestAsLoot())
+end
+ns.OnQuestFull = OnQuestFull
+
+function ns.OnQuestComplete()
+    questOpen = true
+    local title = GetTitleText and GetTitleText()
+    local need, choices = ns.QuestRewardSlots()
+    lastQuest = { title = Usable(title) and type(title) == "string" and title ~= "" and title or "this quest",
+        need = need, choices = choices, seen = GetTime() }
+    -- Short of room already: offer before the hand-in fails.
+    if FreeSlots() < need then OnQuestFull(false) end
+end
+
+function ns.OnQuestFinished()
+    questOpen = false
+end
+
+-- A hand-in failed: if the reward window was not seen (or was another
+-- quest's), assume one slot is needed.
+function ns.NoteFailedQuest(title)
+    if not lastQuest or lastQuest.title ~= title then
+        lastQuest = { title = title, need = 1, choices = 0, seen = GetTime() }
+    end
+end
+
 -- /junkmate room: the same offer, by hand, for the loot window if open.
 function ns.MakeRoomCommand()
     if ns.Restack(function(slots)
@@ -996,9 +1126,32 @@ local function IsBagsFullMessage(...)
 end
 
 local waiting = false
+local questWaiting = false
 local events = CreateFrame("Frame")
 events:SetScript("OnEvent", function(_, event, ...)
     if not ns.db then return end
+    local failed = (event == "UI_ERROR_MESSAGE" or event == "CHAT_MSG_SYSTEM") and ns.QuestFailedFull(...)
+    if failed then
+        -- A quest hand-in failed for want of room (the game may say so twice).
+        if questWaiting then return end
+        questWaiting = true
+        ns.NoteFailedQuest(failed)
+        C_Timer.After(0.3, function()
+            questWaiting = false
+            local ok, problem = pcall(ns.OnQuestFull, true)
+            if not ok then ns.Print("Something went wrong making room: " .. tostring(problem)) end
+        end)
+        return
+    end
+    if event == "CHAT_MSG_SYSTEM" then return end
+    if event == "QUEST_COMPLETE" then
+        local ok, problem = pcall(ns.OnQuestComplete)
+        if not ok then ns.Print("Something went wrong making room: " .. tostring(problem)) end
+        return
+    elseif event == "QUEST_FINISHED" then
+        ns.OnQuestFinished()
+        return
+    end
     if event == "UI_ERROR_MESSAGE" then
         if waiting or not IsBagsFullMessage(...) then return end
         -- Wait a moment: the loot window may still be opening.
@@ -1010,7 +1163,7 @@ events:SetScript("OnEvent", function(_, event, ...)
         end)
     elseif event == "LOOT_CLOSED" then
         said, ns.pendingLoot, retried = false, nil, {}
-        if current and current.loot then
+        if current and current.loot and not current.loot.quest then
             tucked = false
             window:Hide()
             current, skipped = nil, {}
@@ -1047,9 +1200,14 @@ events:SetScript("OnEvent", function(_, event, ...)
         local slot = ns.pendingLoot
         ns.pendingLoot = nil
         if slot and LootOpen() then LootAndContinue(slot) end
+        if ns.pendingQuest then
+            ns.pendingQuest = false
+            C_Timer.After(0.3, function() pcall(ns.OnQuestFull, true) end)
+        end
     end
 end)
 for _, event in ipairs({ "UI_ERROR_MESSAGE", "LOOT_CLOSED", "BAG_UPDATE_DELAYED", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED",
-        "PLAYER_EQUIPMENT_CHANGED", "PLAYER_LEVEL_UP", "EQUIPMENT_SETS_CHANGED", "PLAYER_LOGIN" }) do
+        "PLAYER_EQUIPMENT_CHANGED", "PLAYER_LEVEL_UP", "EQUIPMENT_SETS_CHANGED", "PLAYER_LOGIN",
+        "CHAT_MSG_SYSTEM", "QUEST_COMPLETE", "QUEST_FINISHED" }) do
     pcall(events.RegisterEvent, events, event)
 end

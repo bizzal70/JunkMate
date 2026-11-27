@@ -33,6 +33,8 @@ The window opens on the left of the screen, above the chat, so it never covers t
 - **What it never offers:** gear in an equipment set, gear with a special effect or resistances (Riding Gloves, a fishing hat, fire-resistance gear), bind-on-equip greens and better (worth more at the auction house), quest items, crafting materials, recipes, profession tools (skinning knife, mining pick, fishing poles, enchanting rods and so on), the hearthstone, soul shards and class reagents, keys, bags, ammo, potions and other consumables, gear that would be an upgrade, anything epic, buff food ("well fed"), and the **best food and drink you carry for your level**. So only the old stacks of apples and bread go, never what you'd actually eat.
 - **Worth it or not:** it only makes room for quest items, crafting materials, anything green or better, upgrades, or loot worth more than what would go. A 1-copper pebble won't cost you anything.
 
+**Quest rewards too:** if your bags are too full for a quest's reward, JunkMate makes room the same way, then hands the quest in for you (or tells you to talk to the quest giver again). It never chooses a reward for you.
+
 JunkMate also **restacks on its own** when your bags get down to the warning level, before warning you.
 
 **Tidies the bank.** When you open your bank, JunkMate puts the bank's partial stacks together, then tops up its partial stacks of crafting materials from your bags (15 Linen Cloth in the bank and 7 in your bags: 5 go in to make 20, and 2 stay with you), and says in chat what it did. Only crafting materials move, and only onto stacks already in the bank, so the food, potions, ammo and reagents you carry stay with you and nothing lands in an empty bank slot. Hold **Shift** while opening the bank to skip it.

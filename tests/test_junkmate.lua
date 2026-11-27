@@ -949,3 +949,82 @@ do
     Fire("LOOT_CLOSED")
     LOOTS = {}
 end
+
+-- A quest reward that will not fit.
+do
+    ITEMS[9080] = { name = "Goretusk Liver Pie", q = 1, min = 5, stack = 20, price = 25, class = 0, sub = 5 }
+    local function Item(id, count)
+        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1, isBound = true }
+    end
+    local function RunAfters()
+        for _ = 1, 5 do
+            local timers = AFTERS; AFTERS = {}
+            for _, fn in ipairs(timers) do fn() end
+        end
+    end
+    local room = JunkMateRoom
+    room:Hide(); room.__scripts.OnHide(room)
+    local function FullBags()
+        local list = {}
+        for i = 1, 13 do list[i] = Item(9020) end
+        list[14], list[15], list[16] = Item(9001), Item(9001), Item(9022)
+        BAGS[0] = list
+        for bag = 1, 4 do BAGS[bag] = {} end
+    end
+    REWARDS, CHOICES, HANDED = { "item:9080" }, 0, {}
+    GetNumQuestRewards = function() return #REWARDS end
+    GetNumQuestChoices = function() return CHOICES end
+    GetQuestItemInfo = function() return "Goretusk Liver Pie", "icon", 5 end
+    GetQuestItemLink = function(_, index) return REWARDS[index] end
+    GetTitleText = function() return "Goretusk Liver Pie" end
+    GetQuestReward = function(choice) HANDED[#HANDED + 1] = choice end
+
+    -- The reward window opens with full bags: offered at once.
+    FullBags()
+    Fire("QUEST_COMPLETE")
+    check(room:IsShown() and room.title:GetText():find("quest reward", 1, true)
+        and room.why:GetText() == "To make room for the reward from Goretusk Liver Pie.", "full bags at a quest's reward window: room is offered at once: " .. tostring(room.why:GetText()))
+    NOW = NOW + 2
+    room.destroy.__scripts.OnClick(room.destroy)
+    room.__scripts.OnHide(room)
+    Fire("BAG_UPDATE_DELAYED")
+    RunAfters()
+    check(#HANDED == 1 and HANDED[1] == 0, "once there's room, the quest is handed in")
+    Fire("QUEST_FINISHED")
+
+    -- The hand-in failed and the window closed (as the game does).
+    FullBags()
+    Fire("QUEST_COMPLETE")
+    room:Hide(); room.__scripts.OnHide(room)
+    Fire("QUEST_FINISHED")
+    Fire("CHAT_MSG_SYSTEM", "Goretusk Liver Pie failed: Inventory is full.")
+    Fire("CHAT_MSG_SYSTEM", "Goretusk Liver Pie failed: Inventory is full.")
+    RunAfters()
+    check(room:IsShown() and room.why:GetText():find("Goretusk Liver Pie", 1, true), "'<quest> failed: Inventory is full.' brings up the offer")
+    NOW = NOW + 2
+    room.destroy.__scripts.OnClick(room.destroy)
+    room.__scripts.OnHide(room)
+    Fire("BAG_UPDATE_DELAYED")
+    RunAfters()
+    check(#HANDED == 1 and PRINTED[#PRINTED]:find("talk to the quest giver again", 1, true), "with the quest window gone, it says to talk to the quest giver again: " .. PRINTED[#PRINTED])
+
+    -- A reward that stacks onto one carried needs no room.
+    FullBags()
+    BAGS[0][16] = Item(9080, 3)
+    Fire("QUEST_COMPLETE")
+    check(not room:IsShown(), "a reward that stacks onto one you carry needs no room")
+    Fire("QUEST_FINISHED")
+
+    -- A choice of rewards: room is made, but the choice is yours.
+    FullBags()
+    REWARDS, CHOICES = {}, 3
+    Fire("QUEST_COMPLETE")
+    NOW = NOW + 2
+    room.destroy.__scripts.OnClick(room.destroy)
+    room.__scripts.OnHide(room)
+    Fire("BAG_UPDATE_DELAYED")
+    RunAfters()
+    check(#HANDED == 1 and PRINTED[#PRINTED]:find("pick it and complete the quest", 1, true), "with a reward to choose, it never chooses: it says to pick it")
+    Fire("QUEST_FINISHED")
+    GetNumQuestRewards, GetNumQuestChoices = nil, nil
+end
