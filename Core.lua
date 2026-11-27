@@ -65,6 +65,7 @@ local defaults = {
 -- Names in the game's Key Bindings window (Bindings.xml).
 BINDING_HEADER_JUNKMATE = "JunkMate"
 BINDING_NAME_JUNKMATE_DESTROY = "Make room: destroy the offered item"
+BINDING_NAME_JUNKMATE_UNPIN = "Remove the map pin"
 
 function ns.Print(msg)
     print("|cffd9a066JunkMate|r: " .. tostring(msg))
@@ -321,6 +322,9 @@ SlashCmdList.JUNKMATE = function(msg)
     elseif command == "open" then
         ns.OpenContainers(true)
         return
+    elseif command == "unpin" then
+        ns.ClearMapPin()
+        return
     elseif command == "learn" then
         ns.LearnTargetCommand()
         return
@@ -407,6 +411,7 @@ SlashCmdList.JUNKMATE = function(msg)
         ns.Print("/junkmate repairer - the nearest repairer you've used, with a map pin")
         ns.Print("/junkmate vendor - the nearest vendor you've used, with a map pin")
         ns.Print("/junkmate learn - learn your target as a vendor, and say why if not")
+        ns.Print("/junkmate unpin - remove the map pin (also a key binding)")
         ns.Print("/junkmate bank - tidy the open bank now")
         ns.Print("/junkmate keep - items never offered (keep clear to empty it)")
         ns.Print("/junkmate destroyed - what was destroyed this session")

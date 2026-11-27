@@ -1,5 +1,9 @@
 # JunkMate
 
+## 0.18.1
+
+- **Removing the map pin:** with a controller the world map offers no way to remove a pin, so JunkMate adds one: type `/junkmate unpin`, or set the key binding *Key Bindings > AddOns > JunkMate > Remove the map pin* (a controller button works). It removes any map pin, and JunkMate's vendor pin then stays off until the next time you have junk.
+
 ## 0.18.0
 
 - **A map pin on the nearest vendor, all by itself:** while you carry junk, the map pin and its arrow sit on the nearest vendor JunkMate knows. It moves when a closer one is nearer, and it's cleared once there's nothing left to sell.

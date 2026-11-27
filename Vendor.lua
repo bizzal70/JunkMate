@@ -274,6 +274,25 @@ local function PinIsOurs()
     return map == ours.map and type(x) == "number" and math.abs(x - ours.x) < 0.0001 and math.abs(y - ours.y) < 0.0001
 end
 
+-- Removes the map pin, whoever placed it (/junkmate unpin, and a key
+-- binding). JunkMate's vendor pin then stays off until the next junk.
+function ns.ClearMapPin()
+    if not (C_Map and C_Map.HasUserWaypoint and C_Map.HasUserWaypoint()) then
+        ns.Print("There's no map pin to remove.")
+        return
+    end
+    local db = ns.db
+    if db and db.vendorWaypoint and PinIsOurs() then
+        db.vendorPinDismissed, db.vendorWaypoint = db.vendorWaypoint.name, nil
+    end
+    C_Map.ClearUserWaypoint()
+    ns.Print("Map pin removed.")
+end
+
+function JunkMate_ClearMapPin()
+    pcall(ns.ClearMapPin)
+end
+
 function ns.UpdateVendorWaypoint(count)
     local db = ns.db
     if not (db and C_Map and C_Map.SetUserWaypoint and UiMapPoint and UiMapPoint.CreateFromCoordinates) then return end

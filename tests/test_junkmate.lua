@@ -1623,3 +1623,15 @@ do
     WAYPOINT = nil
 end
 
+-- Removing the map pin.
+do
+    WAYPOINT = { 1, 0.3, 0.3 }
+    SlashCmdList.JUNKMATE("unpin")
+    check(WAYPOINT == nil and PRINTED[#PRINTED]:find("Map pin removed.", 1, true), "/junkmate unpin removes the map pin")
+    SlashCmdList.JUNKMATE("unpin")
+    check(PRINTED[#PRINTED]:find("no map pin", 1, true), "and says so when there isn't one")
+    WAYPOINT = { 1, 0.3, 0.3 }
+    JunkMate_ClearMapPin()
+    check(WAYPOINT == nil, "the key binding does the same")
+end
+

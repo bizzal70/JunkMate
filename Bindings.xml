@@ -2,4 +2,7 @@
 	<Binding name="JUNKMATE_DESTROY" header="JUNKMATE" category="ADDONS">
 		JunkMate_DestroyOffered()
 	</Binding>
+	<Binding name="JUNKMATE_UNPIN" category="ADDONS">
+		JunkMate_ClearMapPin()
+	</Binding>
 </Bindings>
