@@ -412,6 +412,13 @@ local CLASS_REASONS = {
 
 local survey   -- the last look through the bags, for tooltips
 
+-- Normally kept, but everyday enough to give up for a quest reward or a
+-- quest item when nothing else could go.
+local SPARE_REASONS = {
+    ["a crafting material"] = true, ["a potion or other consumable"] = true,
+    ["your best food or drink for your level"] = true, ["buff food"] = true,
+}
+
 function ns.InvalidateSurvey()
     survey = nil
 end
@@ -489,17 +496,22 @@ function ns.Survey(fresh)
         return nil, "not junk"
     end
 
-    local list, bySlot = {}, {}
+    local list, bySlot, spare = {}, {}, {}
     for _, item in ipairs(items) do
         item.tier, item.reason = Judge(item)
         bySlot[item.bag .. ":" .. item.slot] = item
-        if item.tier then
+        if item.tier or SPARE_REASONS[item.reason] then
             item.value = item.noValue and 0 or item.facts.price * item.count
             item.name = item.facts.name
             item.link = item.link or item.facts.link or item.facts.name
-            list[#list + 1] = item
+            if item.tier then list[#list + 1] = item else spare[#spare + 1] = item end
         end
     end
+    table.sort(spare, function(a, b)
+        if a.value ~= b.value then return a.value < b.value end
+        if a.bag ~= b.bag then return a.bag < b.bag end
+        return a.slot < b.slot
+    end)
     table.sort(list, function(a, b)
         if a.tier ~= b.tier then return a.tier < b.tier end
         if a.value ~= b.value then return a.value < b.value end
@@ -507,7 +519,7 @@ function ns.Survey(fresh)
         return a.slot < b.slot
     end)
     for rank, item in ipairs(list) do item.rank = rank end
-    survey = { list = list, bySlot = bySlot }
+    survey = { list = list, bySlot = bySlot, spare = spare }
     return survey
 end
 
@@ -805,17 +817,33 @@ end
 -- Puts the next thing JunkMate would destroy in the window, to make room
 -- for `loot` (or just to free a slot). Returns whether it shows anything.
 function ns.OfferRoom(loot, always)
-    local pick
-    for _, item in ipairs(ns.RoomCandidates()) do
+    local found = ns.Survey(true)
+    local pick, spareReason
+    for _, item in ipairs(found.list) do
         if not skipped[item.bag .. ":" .. item.slot] then
             pick = item
             break
         end
     end
+    -- For a quest reward or a quest item, when nothing else could go: the
+    -- cheapest everyday thing normally kept, marked as such.
+    if not pick and loot and loot.score >= 4 then
+        for _, item in ipairs(found.spare) do
+            if not skipped[item.bag .. ":" .. item.slot] then
+                pick, spareReason = item, item.reason
+                break
+            end
+        end
+    end
     if not pick then
         window:Hide()
-        Say(loot and "Your bags are full, and nothing in them is something JunkMate would throw away."
-            or "There is nothing in your bags JunkMate would throw away.", always)
+        if loot and loot.quest then
+            Say(("There's no room for the reward from %s, and nothing in your bags JunkMate could throw away. Clear your bags at a vendor or the bank first and come back.")
+                :format(loot.link), always)
+        else
+            Say(loot and "Your bags are full, and nothing in them is something JunkMate would throw away."
+                or "There is nothing in your bags JunkMate would throw away.", always)
+        end
         return false
     end
     if not ns.WorthIt(loot, pick) then
@@ -828,10 +856,12 @@ function ns.OfferRoom(loot, always)
     window.icon.texture:SetTexture(pick.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
     window.what:SetText(("Destroy %s%s (worth %s)?"):format(pick.link, Amount(pick), pick.value > 0 and ns.Money(pick.value) or "nothing"))
     if loot and loot.quest then
-        window.why:SetText(("To make room for the reward from %s.\n|cffaaaaaaOr clear your bags at a vendor first and come back.|r"):format(loot.link))
+        window.why:SetText(("To make room for the reward from %s.%s\n|cffaaaaaaOr clear your bags at a vendor first and come back.|r")
+            :format(loot.link, spareReason and ("\n|cffff9933Normally kept: %s.|r"):format(spareReason) or ""))
     elseif loot then
-        window.why:SetText(("To make room for %s%s%s."):format(loot.link, loot.count > 1 and (" x%d"):format(loot.count) or "",
-            loot.value > 0 and (" (worth %s)"):format(ns.Money(loot.value)) or ""))
+        window.why:SetText(("To make room for %s%s%s.%s"):format(loot.link, loot.count > 1 and (" x%d"):format(loot.count) or "",
+            loot.value > 0 and (" (worth %s)"):format(ns.Money(loot.value)) or "",
+            spareReason and ("\n|cffff9933Normally kept: %s.|r"):format(spareReason) or ""))
     else
         window.why:SetText("To free a bag slot.")
     end

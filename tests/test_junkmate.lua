@@ -1029,3 +1029,57 @@ do
     Fire("QUEST_FINISHED")
     GetNumQuestRewards, GetNumQuestChoices = nil, nil
 end
+
+-- Bags full of things normally kept, at a quest turn-in.
+do
+    local function Item(id, count)
+        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1, isBound = true }
+    end
+    local function RunAfters()
+        for _ = 1, 5 do
+            local timers = AFTERS; AFTERS = {}
+            for _, fn in ipairs(timers) do fn() end
+        end
+    end
+    local room = JunkMateRoom
+    room:Hide(); room.__scripts.OnHide(room)
+    Fire("QUEST_FINISHED")
+    -- Linen (crafting material), potions, a quest item, the hearthstone.
+    local list = {}
+    for i = 1, 12 do list[i] = Item(9003) end
+    list[13], list[14], list[15], list[16] = Item(2589, 20), Item(2589, 20), Item(858, 5), Item(6948)
+    BAGS[0] = list
+    for bag = 1, 4 do BAGS[bag] = {} end
+    REWARDS, CHOICES = { "item:9080" }, 0
+    GetNumQuestRewards = function() return #REWARDS end
+    GetNumQuestChoices = function() return CHOICES end
+    Fire("QUEST_COMPLETE")
+    check(room:IsShown() and room.what:GetText():find("item:858", 1, true)
+        and room.why:GetText():find("Normally kept: a potion or other consumable.", 1, true),
+        "nothing junk left: for a quest reward, the cheapest everyday thing normally kept is offered, marked so: "
+        .. tostring(room.what:GetText()) .. " / " .. tostring(room.why:GetText()))
+    NOW = NOW + 2
+    room.next.__scripts.OnClick(room.next)
+    check(room.what:GetText():find("item:2589", 1, true) and room.why:GetText():find("Normally kept: a crafting material.", 1, true),
+        "Not this one moves on to the next (a crafting material)")
+    room:Hide(); room.__scripts.OnHide(room)
+    Fire("QUEST_FINISHED")
+
+    -- Only quest items and the hearthstone: nothing is offered, and chat says what to do.
+    for i = 13, 15 do list[i] = Item(9003) end
+    Fire("QUEST_COMPLETE")
+    check(not room:IsShown() and PRINTED[#PRINTED]:find("There's no room for the reward from Goretusk Liver Pie", 1, true)
+        and PRINTED[#PRINTED]:find("vendor or the bank first and come back", 1, true),
+        "with only untouchable things in the bags, chat says to clear them at a vendor or the bank: " .. PRINTED[#PRINTED])
+    Fire("QUEST_FINISHED")
+
+    -- Ordinary loot never reaches into the things normally kept.
+    list[13], list[14] = Item(2589, 20), Item(2589, 20)
+    LOOTS = { { link = "item:9043", name = "Chunk of Boar Meat", q = 1 } }
+    Fire("UI_ERROR_MESSAGE", 3, "Inventory is full.")
+    RunAfters()
+    check(not room:IsShown(), "ordinary loot never offers anything normally kept")
+    Fire("LOOT_CLOSED")
+    LOOTS = {}
+    GetNumQuestRewards, GetNumQuestChoices = nil, nil
+end

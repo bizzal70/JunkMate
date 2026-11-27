@@ -1,5 +1,11 @@
 # JunkMate
 
+## 0.10.2
+
+- **Quest rewards when your bags hold nothing junk:** handing in a quest with bags full of things JunkMate normally keeps used to stop at *"nothing in them is something JunkMate would throw away"*. Now, for a quest reward or a quest item only, it offers the cheapest everyday thing it normally keeps (potions, food and drink, or crafting materials), clearly marked *"Normally kept: a crafting material."* Quest items, profession tools, the hearthstone, your keep list, equipment sets and epics are still never offered.
+- If there really is nothing it could offer, chat now says to clear your bags at a vendor or the bank first and come back.
+- Ordinary loot never reaches into the things JunkMate normally keeps.
+
 ## 0.10.1
 
 - The make-room window for a quest reward now also says: *"Or clear your bags at a vendor first and come back."* Closing it is always fine; nothing is destroyed until you press Destroy.
