@@ -39,6 +39,10 @@ local defaults = {
     keep = {},
     -- At the bank: restack it and top up its stacks from the bags (Bank.lua).
     bankTidy = true,
+    -- At a vendor, also sell outgrown food and gear you can't use; and say
+    -- on tooltips what JunkMate does with an item (Room.lua).
+    sellExtras = true,
+    whyTooltip = true,
 }
 
 -- Names in the game's Key Bindings window (Bindings.xml).
@@ -210,9 +214,11 @@ local function OnMerchantShow()
     local repairCost = db.repair and Repair() or nil
     local sold = db.sellJunk and SellJunk() or 0
 
-    if not db.report or (sold == 0 and not repairCost) then return end
-    -- The money arrives a moment after the items go, so look again shortly.
+    -- The money arrives a moment after the items go, so look again shortly;
+    -- then sell the extras (outgrown food, gear you can't use), if any.
     C_Timer.After(REPORT_SECONDS, function()
+        if ns.SellExtras then pcall(ns.SellExtras) end
+        if not db.report or (sold == 0 and not repairCost) then return end
         local after = CurrentMoney()
         local parts = {}
         if sold > 0 then
@@ -306,6 +312,7 @@ SlashCmdList.JUNKMATE = function(msg)
     elseif command == "keep" then
         if (msg or ""):lower():find("clear", 1, true) then
             ns.db.keep = {}
+            if ns.InvalidateSurvey then ns.InvalidateSurvey() end
             ns.Print("The keep list is empty again.")
             return
         end

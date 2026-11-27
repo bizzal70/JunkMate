@@ -79,7 +79,7 @@ end
 
 local function CreateWindow()
     window = CreateFrame("Frame", addonName .. "Options", UIParent)
-    window:SetSize(328, 504)
+    window:SetSize(328, 560)
     window:SetPoint("CENTER")
     window:SetFrameStrata("HIGH")
     window:SetToplevel(true)
@@ -197,6 +197,14 @@ local function CreateWindow()
         function() return "Tidy the bank when it opens" end,
         function() return ns.db.bankTidy end,
         function() ns.db.bankTidy = not ns.db.bankTidy end)
+    CreateRow(window, -464, true,
+        function() return "Also sell outgrown food, unusable gear" end,
+        function() return ns.db.sellExtras end,
+        function() ns.db.sellExtras = not ns.db.sellExtras end)
+    CreateRow(window, -492, true,
+        function() return "Say on tooltips what JunkMate does" end,
+        function() return ns.db.whyTooltip end,
+        function() ns.db.whyTooltip = not ns.db.whyTooltip end)
 
     local hint = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("BOTTOMLEFT", 16, 12)

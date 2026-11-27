@@ -232,7 +232,7 @@ local rows = {}
 for _, f in ipairs(Frames()) do
     if rawget(f, "Refresh") and f.__scripts.OnClick then rows[#rows + 1] = f end
 end
-check(#rows == 12, "the options have twelve controls")
+check(#rows == 14, "the options have fourteen controls")
 local statusLine
 for _, f in ipairs(Frames()) do
     if rawget(f, "__text") and f.__text:find("^Gear") then statusLine = f end
@@ -275,7 +275,9 @@ SlashCmdList.JUNKMATE("help")
 
 -- Vendor price on item tooltips.
 local priceHook
-TooltipDataProcessor = { AddTooltipPostCall = function(kind, hook) if kind == "item" then priceHook = hook end end }
+ITEM_HOOKS = {}
+TooltipDataProcessor = { AddTooltipPostCall = function(kind, hook) if kind == "item" then ITEM_HOOKS[#ITEM_HOOKS + 1] = hook end end }
+priceHook = function(...) for _, hook in ipairs(ITEM_HOOKS) do hook(...) end end
 Enum.TooltipDataType = { Item = "item" }
 Enum.TooltipDataLineType = { SellPrice = 11 }
 local PRICES = { [2589] = 13, [6948] = 0 }
@@ -458,7 +460,7 @@ do
         for _, fn in ipairs(timers) do fn() end
     end
     local function Item(id, count)
-        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1 }
+        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1, isBound = true }
     end
     local function Bag(list, size)
         local bag = {}
@@ -678,7 +680,7 @@ do
         for _, fn in ipairs(timers) do fn() end
     end
     local function Item(id, count)
-        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1 }
+        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1, isBound = true }
     end
     local function Bag(list, size)
         local bag = {}
@@ -741,7 +743,7 @@ end
 -- Audit fixes.
 do
     local function Item(id, count)
-        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1 }
+        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1, isBound = true }
     end
     local function RunAfters()
         local timers = AFTERS; AFTERS = {}
@@ -801,4 +803,101 @@ do
     for _, id in ipairs(ids) do seen[id] = true end
     check(seen[-1] and seen[6] and not seen[5] and not seen[0], "bank bags found by number when not by name, never the reagent bag")
     Enum.BagIndex = nil
+end
+
+-- Protecting kept gear, selling extras at a vendor, and the tooltip line.
+do
+    ITEMS[9070] = { name = "Green Gloves", q = 2, ilvl = 8, loc = "INVTYPE_HAND", price = 40, class = 4, sub = 1 }
+    ITEMS[9071] = { name = "Riding Gloves", q = 2, ilvl = 5, loc = "INVTYPE_HAND", price = 30, class = 4, sub = 1 }
+    ITEMS[9072] = { name = "Fire Mitts", q = 1, ilvl = 5, loc = "INVTYPE_HAND", price = 9, class = 4, sub = 1 }
+    ITEMS[9073] = { name = "Fishing Mitts", q = 1, ilvl = 6, loc = "INVTYPE_HAND", price = 7, class = 4, sub = 1 }
+    local TIPS = { [9071] = "Equip: Increases mount speed by 4%.", [9014] = "Use: If you spend at least 10 seconds eating you will become well fed." }
+    C_TooltipInfo.GetBagItem = function(bag, slot)
+        local item = BAGS[bag][slot]
+        local tip = item and TIPS[item.itemID]
+        return { lines = tip and { { leftText = tip } } or {} }
+    end
+    C_Item.GetItemStats = function(link)
+        if tostring(link):find("item:9072", 1, true) then return { ITEM_MOD_FIRE_RESISTANCE_SHORT = 10 } end
+        return {}
+    end
+    C_EquipmentSet = { GetEquipmentSetIDs = function() return { 1 } end, GetItemIDs = function() return { [10] = 9073 } end }
+    local function Item(id, count, bound)
+        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1,
+            isBound = bound ~= false }
+    end
+    for bag = 1, 4 do BAGS[bag] = {} end
+    BAGS[0] = { Item(9010, 3), Item(9011, 4), Item(9021), Item(9022), Item(9070, 1, false), Item(9071), Item(9072), Item(9073) }
+    Fire("BAG_UPDATE_DELAYED")
+
+    local names = {}
+    for _, item in ipairs(ns.RoomCandidates()) do names[#names + 1] = item.name end
+    check(table.concat(names, ",") == "Tough Jerky,Cloth Gloves,Mail Chest", "never offered: equipment-set gear, special effects, resistances, bind-on-equip greens: " .. table.concat(names, ","))
+    local reasons = ns.Survey(true).bySlot
+    check(reasons["0:5"].reason:find("bind on equip", 1, true) and reasons["0:6"].reason == "it has a special effect"
+        and reasons["0:7"].reason == "it has a special effect" and reasons["0:8"].reason == "in an equipment set",
+        "each kept for its own reason")
+
+    -- The tooltip line.
+    local owner = { GetBagID = function() return 0 end, GetID = function() return 1 end }
+    local said = {}
+    rawset(GameTooltip, "GetOwner", function() return owner end)
+    rawset(GameTooltip, "AddLine", function(_, text) said[#said + 1] = text end)
+    local function Why(slot, id)
+        said = {}
+        owner.GetID = function() return slot end
+        ns.AddWhyLine(GameTooltip, { id = id })
+        return said[1] or ""
+    end
+    check(Why(1, 9010) == "JunkMate: sold at vendors; 1st to go if your bags fill (outgrown food or drink)", "outgrown food says it is sold and goes first: " .. Why(1, 9010))
+    check(Why(4, 9022) == "JunkMate: 2nd to go if your bags fill (gear that's no upgrade)", "wearable gear that's no upgrade is not sold, only offered: " .. Why(4, 9022))
+    check(Why(3, 9021) == "JunkMate: sold at vendors; 3rd to go if your bags fill (gear you can't use)", "gear this class can't use is sold: " .. Why(3, 9021))
+    check(Why(2, 9011) == "JunkMate keeps this: your best food or drink for your level", "kept items say why: " .. Why(2, 9011))
+    check(Why(6, 9071) == "JunkMate keeps this: it has a special effect", "Riding Gloves are kept for their effect")
+    check(Why(6, 9999) == "", "nothing is said if the item there is not the one on the tooltip")
+    owner.GetBagID = function() return 7 end
+    check(Why(1, 9010) == "", "nor for anything that is not in the bags")
+    owner.GetBagID = function() return 0 end
+    ns.db.whyTooltip = false
+    check(Why(1, 9010) == "", "and nothing with the option off")
+    ns.db.whyTooltip = true
+
+    -- Selling extras at a vendor.
+    local ticks = {}
+    C_Timer.NewTicker = function(_, fn)
+        local t = { fn = fn, Cancel = function(self) self.cancelled = true end }
+        ticks[#ticks + 1] = t
+        return t
+    end
+    USED = {}
+    Fire("MERCHANT_SHOW")
+    local timers = AFTERS; AFTERS = {}
+    for _, fn in ipairs(timers) do fn() end
+    check(#ticks == 1, "a vendor visit sells the extras after the junk")
+    for _ = 1, 10 do if not ticks[1].cancelled then ticks[1].fn(ticks[1]) end end
+    check(table.concat(USED, " ") == "0:1 0:3", "outgrown food and gear this class can't use are sold, nothing else: " .. table.concat(USED, " "))
+    check(PRINTED[#PRINTED]:find("Also sold 2 outgrown or unusable items for 1s 26c.", 1, true) ~= nil, "and it says so: " .. PRINTED[#PRINTED])
+    Fire("MERCHANT_CLOSED")
+
+    ns.db.sellExtras = false
+    ticks, USED = {}, {}
+    Fire("MERCHANT_SHOW")
+    timers = AFTERS; AFTERS = {}
+    for _, fn in ipairs(timers) do fn() end
+    check(#ticks == 0, "with the option off, only junk is sold")
+    Fire("MERCHANT_CLOSED")
+    ns.db.sellExtras = true
+
+    local many = {}
+    for i = 1, 16 do many[i] = Item(9021) end
+    BAGS[0] = many
+    Fire("BAG_UPDATE_DELAYED")
+    ticks, USED = {}, {}
+    Fire("MERCHANT_SHOW")
+    timers = AFTERS; AFTERS = {}
+    for _, fn in ipairs(timers) do fn() end
+    for _ = 1, 30 do if not ticks[1].cancelled then ticks[1].fn(ticks[1]) end end
+    check(#USED == 12, "never more than 12 a visit, so everything sold can be bought back")
+    Fire("MERCHANT_CLOSED")
+    C_EquipmentSet = nil
 end

@@ -1,5 +1,15 @@
 # JunkMate
 
+## 0.9.0
+
+- **Sells more than junk:** at a vendor, after the grey items, JunkMate also sells food and drink you've outgrown and gear your class can't use, so you need to make room far less often. At most 12 a visit, so everything sold can still be bought back from the vendor's Buyback tab. Gear you can wear but isn't an upgrade is never sold, only offered when your bags are full. Switch it off in the options.
+- **Keeps more of your gear safe:** never offered or sold now:
+  - gear in an equipment set;
+  - gear with a special effect ("Use:", "Equip:" or "Chance on hit:", such as Riding Gloves or a Carrot on a Stick);
+  - gear with resistances;
+  - bind-on-equip greens and better, which are worth more at the auction house.
+- **Tooltips say what JunkMate does with an item.** Hover anything in your bags: *"JunkMate keeps this: a quest item"*, or *"JunkMate: sold at vendors; 1st to go if your bags fill (outgrown food or drink)"*. Switch it off in the options.
+
 ## 0.8.3
 
 Fixes from a code review:

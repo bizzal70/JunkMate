@@ -70,7 +70,7 @@ function ns.ContainerItems(bags)
                 items[#items + 1] = {
                     bag = bag, slot = slot, itemID = info.itemID, count = Number(info.stackCount) or 1,
                     quality = Number(info.quality), locked = info.isLocked and true or false,
-                    noValue = info.hasNoValue and true or false, link = Usable(info.hyperlink) and info.hyperlink or nil,
+                    noValue = info.hasNoValue and true or false, bound = info.isBound, link = Usable(info.hyperlink) and info.hyperlink or nil,
                     icon = info.iconFileID,
                 }
             end
@@ -264,16 +264,67 @@ local function FoodKind(itemID)
     if ok and Usable(spell) and type(spell) == "string" then return FOOD_SPELLS[spell] end
 end
 
--- Buff food says on its tooltip that you will become well fed.
-local function IsBuffFood(bag, slot)
-    if not (C_TooltipInfo and C_TooltipInfo.GetBagItem) then return false end
+-- The text on a bag item's tooltip, line by line.
+local function TooltipLines(bag, slot)
+    if not (C_TooltipInfo and C_TooltipInfo.GetBagItem) then return {} end
     local ok, data = pcall(C_TooltipInfo.GetBagItem, bag, slot)
-    if not ok or type(data) ~= "table" or type(data.lines) ~= "table" then return false end
+    if not ok or type(data) ~= "table" or type(data.lines) ~= "table" then return {} end
+    local lines = {}
     for _, line in ipairs(data.lines) do
         local text = line.leftText
-        if Usable(text) and type(text) == "string" and text:lower():find("well fed", 1, true) then return true end
+        if Usable(text) and type(text) == "string" then lines[#lines + 1] = text end
+    end
+    return lines
+end
+
+-- Buff food says on its tooltip that you will become well fed.
+local function IsBuffFood(bag, slot)
+    for _, text in ipairs(TooltipLines(bag, slot)) do
+        if text:lower():find("well fed", 1, true) then return true end
     end
     return false
+end
+
+-- Gear with a special effect: a "Use:", "Equip:" or "Chance on hit:" line
+-- (Riding Gloves, a Carrot on a Stick, a fishing hat), or resistances.
+-- The game's own words for these, so it works in every language.
+local function HasEffect(item)
+    local triggers = {}
+    for _, word in ipairs({ ITEM_SPELL_TRIGGER_ONUSE or "Use:", ITEM_SPELL_TRIGGER_ONEQUIP or "Equip:",
+            ITEM_SPELL_TRIGGER_ONPROC or "Chance on hit:" }) do
+        if type(word) == "string" and word ~= "" then triggers[#triggers + 1] = word end
+    end
+    for _, text in ipairs(TooltipLines(item.bag, item.slot)) do
+        for _, word in ipairs(triggers) do
+            if text:sub(1, #word) == word then return true end
+        end
+    end
+    local getStats = (C_Item and C_Item.GetItemStats) or GetItemStats
+    if getStats and item.link then
+        local ok, stats = pcall(getStats, item.link)
+        if ok and type(stats) == "table" then
+            for key in pairs(stats) do
+                if type(key) == "string" and key:find("RESISTANCE", 1, true) then return true end
+            end
+        end
+    end
+    return false
+end
+
+-- Every item in the player's equipment sets.
+local function SetItems()
+    local ids, sets = {}, C_EquipmentSet
+    if not (sets and sets.GetEquipmentSetIDs and sets.GetItemIDs) then return ids end
+    local ok, list = pcall(sets.GetEquipmentSetIDs)
+    for _, setID in ipairs(ok and type(list) == "table" and list or {}) do
+        local found, items = pcall(sets.GetItemIDs, setID)
+        if found and type(items) == "table" then
+            for _, id in pairs(items) do
+                if Number(id) then ids[id] = true end
+            end
+        end
+    end
+    return ids
 end
 
 -- Gear: which slots an item goes in, and who can wear it.
@@ -353,12 +404,28 @@ function ns.IsUpgrade(facts, context)
     return facts.itemLevel > (weakest or math.huge)
 end
 
--- Which items JunkMate would destroy to make room, in the order it would
--- offer them: a list of items with tier (1 grey, 2 outdated food or drink,
--- 3 gear), value (the whole stack's vendor price), name and link.
-function ns.RoomCandidates()
+-- Why a kind of item is always kept.
+local CLASS_REASONS = {
+    [1] = "a bag", [3] = "a gem", [5] = "a reagent", [6] = "ammo", [7] = "a crafting material",
+    [9] = "a recipe", [11] = "a quiver", [12] = "a quest item", [13] = "a key",
+}
+
+local survey   -- the last look through the bags, for tooltips
+
+function ns.InvalidateSurvey()
+    survey = nil
+end
+
+-- A look through the bags: every item gets either a tier (1 grey, 2
+-- outgrown food or drink, 3 gear) and a description, or the reason it is
+-- kept. Returns { list = the items that could go, cheapest first, with
+-- their rank; bySlot = every item by "bag:slot" }. Kept until the bags,
+-- gear, level or equipment sets change; fresh = look again regardless.
+function ns.Survey(fresh)
+    if survey and not fresh then return survey end
     local context = Context()
     local keep = ns.db and ns.db.keep or {}
+    local inSets = SetItems()
     local items = {}
     local best = { food = -1, drink = -1 }
     for _, item in ipairs(ns.BagItems()) do
@@ -386,35 +453,47 @@ function ns.RoomCandidates()
         return level >= best[item.food]
     end
 
-    local function Tier(item)
+    -- tier and description, or nil and the reason it is kept.
+    local function Judge(item)
         local facts = item.facts
-        if item.locked or keep[item.itemID] or not facts then return end
+        if not facts or item.locked then return end
+        if keep[item.itemID] then return nil, "on your keep list" end
         if C_Container.GetContainerItemQuestInfo then
             local ok, quest = pcall(C_Container.GetContainerItemQuestInfo, item.bag, item.slot)
-            if ok and type(quest) == "table" and (quest.isQuestItem or quest.questID) then return end
+            if ok and type(quest) == "table" and (quest.isQuestItem or quest.questID) then return nil, "a quest item" end
         end
-        if facts.classID == 12 or TOOLS[item.itemID] or KEEP[item.itemID] then return end
+        if facts.classID == 12 then return nil, "a quest item" end
+        if TOOLS[item.itemID] then return nil, "a profession tool" end
+        if KEEP[item.itemID] then return nil, "always kept" end
         local quality = item.quality or facts.quality
-        if quality == 0 then return 1 end
-        if not quality or quality >= EPIC then return end
-        if not facts.classID or KEEP_CLASSES[facts.classID] then return end
+        if quality == 0 then return 1, "a grey item" end
+        if not quality then return end
+        if quality >= EPIC then return nil, "epic or better" end
+        if not facts.classID then return end
+        if CLASS_REASONS[facts.classID] then return nil, CLASS_REASONS[facts.classID] end
         if facts.classID == CONSUMABLE then
-            -- Only plain food and drink outgrown by something better.
-            if not item.food or item.buff or IsBestFood(item) then return end
-            return 2
+            if not item.food then return nil, "a potion or other consumable" end
+            if item.buff then return nil, "buff food" end
+            if IsBestFood(item) then return nil, "your best food or drink for your level" end
+            return 2, "outgrown food or drink"
         end
         if facts.classID == WEAPON or facts.classID == ARMOR then
-            if facts.classID == WEAPON and facts.subclassID == FISHING_POLE then return end
-            if ns.IsUpgrade(facts, context) then return end
-            return 3
+            if facts.classID == WEAPON and facts.subclassID == FISHING_POLE then return nil, "a profession tool" end
+            if inSets[item.itemID] then return nil, "in an equipment set" end
+            if quality >= 2 and item.bound ~= true then return nil, "bind on equip, worth more at the auction house" end
+            if HasEffect(item) then return nil, "it has a special effect" end
+            if ns.IsUpgrade(facts, context) then return nil, "an upgrade for you" end
+            item.wearable = ns.CanWear(facts, context)
+            return 3, item.wearable and "gear that's no upgrade" or "gear you can't use"
         end
+        return nil, "not junk"
     end
 
-    local list = {}
+    local list, bySlot = {}, {}
     for _, item in ipairs(items) do
-        local tier = Tier(item)
-        if tier then
-            item.tier = tier
+        item.tier, item.reason = Judge(item)
+        bySlot[item.bag .. ":" .. item.slot] = item
+        if item.tier then
             item.value = item.noValue and 0 or item.facts.price * item.count
             item.name = item.facts.name
             item.link = item.link or item.facts.link or item.facts.name
@@ -427,7 +506,119 @@ function ns.RoomCandidates()
         if a.bag ~= b.bag then return a.bag < b.bag end
         return a.slot < b.slot
     end)
-    return list
+    for rank, item in ipairs(list) do item.rank = rank end
+    survey = { list = list, bySlot = bySlot }
+    return survey
+end
+
+-- Which items JunkMate would destroy to make room, in the order it would
+-- offer them (see ns.Survey).
+function ns.RoomCandidates()
+    return ns.Survey(true).list
+end
+
+-- Sold at a vendor, besides junk: outgrown food and drink, and gear this
+-- character can't use.
+function ns.IsExtraSale(item)
+    return (item.tier == 2 or (item.tier == 3 and item.wearable == false)) and (item.value or 0) > 0
+end
+
+----------------------------------------------------------------------------
+-- Selling more than junk at a vendor
+----------------------------------------------------------------------------
+
+-- The vendor's Buyback tab holds 12 items, so never more than that a visit:
+-- anything sold can still be bought back.
+local MAX_EXTRA_SALES = 12
+local EXTRA_SELL_INTERVAL = 0.2
+local extraTicker
+
+function ns.SellExtras()
+    if extraTicker or not (ns.db and ns.db.sellExtras and ns.merchantOpen) then return end
+    local list = {}
+    for _, item in ipairs(ns.Survey(true).list) do
+        if ns.IsExtraSale(item) and #list < MAX_EXTRA_SALES then list[#list + 1] = item end
+    end
+    if #list == 0 then return end
+    local index, sold, earned = 0, 0, 0
+    extraTicker = C_Timer.NewTicker(EXTRA_SELL_INTERVAL, function(ticker)
+        index = index + 1
+        local item = list[index]
+        if not item or not ns.merchantOpen then
+            ticker:Cancel()
+            extraTicker = nil
+            if sold > 0 and ns.db.report then
+                ns.Print(("Also sold %d outgrown or unusable item%s for %s. Changed your mind? They're on the vendor's Buyback tab.")
+                    :format(sold, sold == 1 and "" or "s", ns.Money(earned)))
+            end
+            return
+        end
+        -- Still the same item and amount, or it is left alone.
+        local info = C_Container.GetContainerItemInfo(item.bag, item.slot)
+        if type(info) == "table" and info.itemID == item.itemID and (info.stackCount or 1) == item.count and not info.isLocked then
+            C_Container.UseContainerItem(item.bag, item.slot)
+            sold, earned = sold + 1, earned + item.value
+        end
+    end)
+end
+
+----------------------------------------------------------------------------
+-- What JunkMate would do with an item, on its tooltip
+----------------------------------------------------------------------------
+
+local function Ordinal(n)
+    local suffix = "th"
+    if n % 100 < 11 or n % 100 > 13 then
+        local last = n % 10
+        suffix = last == 1 and "st" or last == 2 and "nd" or last == 3 and "rd" or "th"
+    end
+    return n .. suffix
+end
+
+-- The bag and slot of the bag button a tooltip belongs to.
+local function BagSlotOf(tooltip)
+    local ok, owner = pcall(tooltip.GetOwner, tooltip)
+    if not ok or type(owner) ~= "table" then return end
+    local bag, slot
+    if owner.GetBagID then
+        local found, id = pcall(owner.GetBagID, owner)
+        if found then bag = id end
+    end
+    if bag == nil and owner.GetParent then
+        local found, parent = pcall(owner.GetParent, owner)
+        if found and type(parent) == "table" and parent.GetID then bag = parent:GetID() end
+    end
+    if owner.GetID then slot = owner:GetID() end
+    bag, slot = Number(bag), Number(slot)
+    if bag and slot and bag >= FIRST_BAG and bag <= LAST_BAG and slot >= 1 then return bag, slot end
+end
+
+-- The tooltip line for the item in a bag slot, or nil.
+function ns.WhyLine(bag, slot, itemID)
+    local item = ns.Survey().bySlot[bag .. ":" .. slot]
+    if not item or item.itemID ~= itemID then
+        item = ns.Survey(true).bySlot[bag .. ":" .. slot]
+        if not item or item.itemID ~= itemID then return end
+    end
+    if item.tier then
+        local sold = (item.tier == 1 and ns.db.sellJunk) or (ns.db.sellExtras and ns.IsExtraSale(item))
+        local text = ("%s to go if your bags fill (%s)"):format(Ordinal(item.rank), item.reason)
+        return "JunkMate: " .. (sold and ("sold at vendors; " .. text) or text)
+    elseif item.reason then
+        return "JunkMate keeps this: " .. item.reason
+    end
+end
+
+function ns.AddWhyLine(tooltip, data)
+    if not (ns.db and ns.db.whyTooltip) or tooltip ~= GameTooltip then return end
+    local itemID = data and data.id
+    if not Number(itemID) then return end
+    local bag, slot = BagSlotOf(tooltip)
+    if not bag then return end
+    local line = ns.WhyLine(bag, slot, itemID)
+    if not line then return end
+    tooltip:AddLine(line, 0.85, 0.63, 0.40, true)
+    tooltip:Show()
 end
 
 ----------------------------------------------------------------------------
@@ -716,6 +907,7 @@ window.keep:SetScript("OnClick", function()
     if not current or GetTime() < armedAt then return end
     local item, loot = current.item, current.loot
     ns.db.keep[item.itemID] = true
+    ns.InvalidateSurvey()
     ns.Print(("JunkMate will never offer %s again. /junkmate keep lists what it keeps."):format(item.link))
     ns.OfferRoom(loot, true)
 end)
@@ -825,12 +1017,23 @@ events:SetScript("OnEvent", function(_, event, ...)
                 window:Show()
             end
         end
+    elseif event == "PLAYER_EQUIPMENT_CHANGED" or event == "PLAYER_LEVEL_UP" or event == "EQUIPMENT_SETS_CHANGED" then
+        ns.InvalidateSurvey()
+    elseif event == "PLAYER_LOGIN" then
+        if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall
+                and Enum and Enum.TooltipDataType and Enum.TooltipDataType.Item then
+            TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(tooltip, data)
+                pcall(ns.AddWhyLine, tooltip, data)
+            end)
+        end
     elseif event == "BAG_UPDATE_DELAYED" then
+        ns.InvalidateSurvey()
         local slot = ns.pendingLoot
         ns.pendingLoot = nil
         if slot and LootOpen() and LootSlot then pcall(LootSlot, slot) end
     end
 end)
-for _, event in ipairs({ "UI_ERROR_MESSAGE", "LOOT_CLOSED", "BAG_UPDATE_DELAYED", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED" }) do
+for _, event in ipairs({ "UI_ERROR_MESSAGE", "LOOT_CLOSED", "BAG_UPDATE_DELAYED", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED",
+        "PLAYER_EQUIPMENT_CHANGED", "PLAYER_LEVEL_UP", "EQUIPMENT_SETS_CHANGED", "PLAYER_LOGIN" }) do
     pcall(events.RegisterEvent, events, event)
 end

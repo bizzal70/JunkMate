@@ -30,12 +30,16 @@ The window opens on the left of the screen, above the chat, so it never covers t
 **Nothing is ever destroyed until you press Destroy.** Then the loot is picked up for you. Press **Not this one** to see the next choice, or **Keep always** so JunkMate never offers that item again.
 
 - **What it offers, in order:** grey items first, then food and drink you've outgrown, then gear that isn't an upgrade for your class (wrong armour type, or a lower item level than what you wear), cheapest first.
-- **What it never offers:** quest items, crafting materials, recipes, profession tools (skinning knife, mining pick, fishing poles, enchanting rods and so on), the hearthstone, soul shards and class reagents, keys, bags, ammo, potions and other consumables, gear that would be an upgrade, anything epic, buff food ("well fed"), and the **best food and drink you carry for your level**. So only the old stacks of apples and bread go, never what you'd actually eat.
+- **What it never offers:** gear in an equipment set, gear with a special effect or resistances (Riding Gloves, a fishing hat, fire-resistance gear), bind-on-equip greens and better (worth more at the auction house), quest items, crafting materials, recipes, profession tools (skinning knife, mining pick, fishing poles, enchanting rods and so on), the hearthstone, soul shards and class reagents, keys, bags, ammo, potions and other consumables, gear that would be an upgrade, anything epic, buff food ("well fed"), and the **best food and drink you carry for your level**. So only the old stacks of apples and bread go, never what you'd actually eat.
 - **Worth it or not:** it only makes room for quest items, crafting materials, anything green or better, upgrades, or loot worth more than what would go. A 1-copper pebble won't cost you anything.
 
 JunkMate also **restacks on its own** when your bags get down to the warning level, before warning you.
 
 **Tidies the bank.** When you open your bank, JunkMate puts the bank's partial stacks together, then tops up its partial stacks of crafting materials from your bags (15 Linen Cloth in the bank and 7 in your bags: 5 go in to make 20, and 2 stay with you), and says in chat what it did. Only crafting materials move, and only onto stacks already in the bank, so the food, potions, ammo and reagents you carry stay with you and nothing lands in an empty bank slot. Hold **Shift** while opening the bank to skip it.
+
+**Sells more than junk.** At a vendor, after the grey items, JunkMate also sells food and drink you've outgrown and gear your class can't use (at most 12 a visit, so everything can still be bought back). Gear you can wear but isn't an upgrade is never sold.
+
+**Tooltips say what JunkMate does with an item.** Hover anything in your bags to see whether JunkMate keeps it and why ("JunkMate keeps this: in an equipment set"), or where it stands ("JunkMate: sold at vendors; 1st to go if your bags fill").
 
 **Vendor prices on tooltips:** hover over any item to see what it sells for at a vendor, and for a stack what the whole stack is worth ("Vendor: 13c each, 20 for 2s 60c"). Items a vendor will not buy say so. Handy for deciding what to vendor, auction or mail to your bank alt. Forever's own tooltip already shows the sell price of the whole stack; there JunkMate adds only what one is worth ("Sell price each: 3c"), for stacks.
 
@@ -55,6 +59,8 @@ Type `/junkmate` (or `/jmate`) to open the options, click JunkMate's minimap but
 | Offer to make room when loot won't fit | (options window) |
 | Restack when bags get nearly full | (options window) |
 | Tidy the bank when it opens | (options window), or `/junkmate bank` to run it now |
+| Also sell outgrown food and gear you can't use | (options window) |
+| Say on tooltips what JunkMate does with an item | (options window) |
 
 Also: `/junkmate room` (make room now, without loot), `/junkmate restack` (restack now), `/junkmate keep` (what it never offers; `/junkmate keep clear` empties it) and `/junkmate destroyed` (what was destroyed this session).
 
