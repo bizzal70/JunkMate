@@ -52,6 +52,8 @@ local defaults = {
     repairGuide = true,
     -- With junk to sell: name the nearest remembered vendor (Vendor.lua).
     vendorGuide = true,
+    -- The worn-gear line on screen (Durability.lua), apart from its warning.
+    wornBanner = true,
 }
 
 -- Names in the game's Key Bindings window (Bindings.xml).
@@ -313,6 +315,17 @@ SlashCmdList.JUNKMATE = function(msg)
     elseif command == "open" then
         ns.OpenContainers(true)
         return
+    elseif command == "banner" then
+        if (msg or ""):lower():find("reset", 1, true) then
+            ns.ResetBanner()
+            ns.Print("The worn-gear line is back at the top of the screen.")
+        else
+            ns.db.wornBanner = not ns.db.wornBanner
+            pcall(ns.UpdateDurability)
+            ns.Print("The worn-gear line on screen is " .. (ns.db.wornBanner and "on." or "off. The hammer on the minimap button still shows worn gear."))
+        end
+        ns.RefreshOptions()
+        return
     elseif command == "vendor" or command == "vendors" then
         local count = 0
         for _ in pairs(ns.db.vendors or {}) do count = count + 1 end
@@ -362,7 +375,8 @@ SlashCmdList.JUNKMATE = function(msg)
         ns.Print("/junkmate junk - sell grey items when a vendor opens, on or off")
         ns.Print("/junkmate repair - repair when a vendor who can opens, on or off")
         ns.Print("/junkmate report - say in chat what was sold and repaired, on or off")
-        ns.Print("/junkmate worn - warn on screen when gear is wearing out, on or off")
+        ns.Print("/junkmate worn - warn when gear is wearing out, on or off")
+        ns.Print("/junkmate banner - the worn-gear line on screen, on or off (banner reset puts it back)")
         ns.Print("/junkmate bags - warn when your bags are nearly full, on or off")
         ns.Print("/junkmate price - vendor prices on item tooltips, on or off")
         ns.Print("/junkmate button - show or hide the minimap button")

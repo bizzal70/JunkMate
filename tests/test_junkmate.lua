@@ -232,7 +232,7 @@ local rows = {}
 for _, f in ipairs(Frames()) do
     if rawget(f, "Refresh") and f.__scripts.OnClick then rows[#rows + 1] = f end
 end
-check(#rows == 18, "the options have eighteen controls")
+check(#rows == 19, "the options have nineteen controls")
 local statusLine
 for _, f in ipairs(Frames()) do
     if rawget(f, "__text") and f.__text:find("^Gear") then statusLine = f end
@@ -240,7 +240,7 @@ end
 check(statusLine ~= nil, "the options show the gear's condition: " .. (statusLine and statusLine.__text or "none"))
 local bagLine
 for _, f in ipairs(Frames()) do
-    if rawget(f, "__text") and f.__text:find("^Bags") then bagLine = f end
+    if rawget(f, "__text") and f.__text:find("^Bags[: ]") then bagLine = f end
 end
 check(bagLine ~= nil and bagLine.__text == "Bags: 14 of 16 slots free.", "and the bags' free slots: " .. (bagLine and bagLine.__text or "none"))
 rows[7].__scripts.OnClick(rows[7])
@@ -1358,3 +1358,23 @@ do
     ns.db.vendorGuide = true
     UNITS.npc, UNITS.mouseover, UNITS.target = nil, nil, nil
 end
+
+-- The worn-gear line: its own switch, and moving it back.
+do
+    local notice = JunkMateDurabilityNotice
+    check(ns.db.wornBanner, "the worn-gear line starts on")
+    GEAR[5] = { 18, 100 }
+    Fire("UPDATE_INVENTORY_DURABILITY")
+    check(notice:IsShown() and ns.wornBadge:IsShown(), "worn gear: the line and the hammer")
+    SlashCmdList.JUNKMATE("banner")
+    check(not notice:IsShown() and ns.wornBadge:IsShown() and not ns.db.wornBanner, "/junkmate banner hides the line, the hammer stays")
+    SlashCmdList.JUNKMATE("banner")
+    check(notice:IsShown(), "and shows it again")
+    notice.__scripts.OnDragStart(notice); notice.__scripts.OnDragStop(notice); notice.__scripts.OnMouseUp(notice, "LeftButton")
+    check(ns.db.noticePosition ~= nil, "dragged, it remembers where")
+    SlashCmdList.JUNKMATE("banner reset")
+    check(ns.db.noticePosition == nil and notice.__point[1] == "TOP" and notice.__point[5] == -150, "/junkmate banner reset puts it back at the top")
+    GEAR = {}
+    Fire("UPDATE_INVENTORY_DURABILITY")
+end
+

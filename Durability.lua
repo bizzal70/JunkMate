@@ -79,6 +79,21 @@ background:SetColorTexture(0, 0, 0, 0.55)
 local text = notice:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 text:SetPoint("CENTER")
 ns.durabilityNotice = notice
+notice:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+    GameTooltip:AddLine("JunkMate: worn gear", 1, 0.82, 0.2)
+    GameTooltip:AddLine("Drag to move it. Click: map pin on the nearest repairer.", 1, 1, 1, true)
+    GameTooltip:AddLine("/junkmate banner hides it; /junkmate banner reset puts it back.", 0.7, 0.7, 0.7, true)
+    GameTooltip:Show()
+end)
+notice:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+-- Back to its place at the top of the screen.
+function ns.ResetBanner()
+    if ns.db then ns.db.noticePosition = nil end
+    notice:ClearAllPoints()
+    notice:SetPoint("TOP", UIParent, "TOP", 0, -150)
+end
 
 -- Passes the gear's condition on to the minimap button's "!" and the
 -- options window.
@@ -115,7 +130,9 @@ function ns.UpdateDurability()
     else
         text:SetTextColor(1, 0.65, 0.2)
     end
-    notice:Show()
+    -- The line on screen has its own switch; the hammer on the minimap
+    -- button and the chat line stay either way.
+    notice:SetShown(db.wornBanner ~= false)
     if not warned then
         warned = true
         ns.Print(("Your most worn piece of gear is down to %d%%. Time to find a vendor who repairs.%s"):format(percent,

@@ -79,7 +79,7 @@ end
 
 local function CreateWindow()
     window = CreateFrame("Frame", addonName .. "Options", UIParent)
-    window:SetSize(328, 672)
+    window:SetSize(652, 456)
     window:SetPoint("CENTER")
     window:SetFrameStrata("HIGH")
     window:SetToplevel(true)
@@ -114,13 +114,13 @@ local function CreateWindow()
     -- The gear's condition, so the minimap button's "!" has an answer here.
     status = window:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     status:SetPoint("TOPLEFT", 16, -40)
-    status:SetWidth(296)
+    status:SetWidth(620)
     status:SetJustifyH("LEFT")
     status:SetWordWrap(true)
     -- And the bags' free slots, just under it.
     bagStatus = window:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     bagStatus:SetPoint("TOPLEFT", status, "BOTTOMLEFT", 0, -4)
-    bagStatus:SetWidth(296)
+    bagStatus:SetWidth(620)
     bagStatus:SetJustifyH("LEFT")
 
     CreateRow(window, -100, true,
@@ -228,9 +228,59 @@ local function CreateWindow()
             if ns.UpdateVendorHelp then pcall(ns.UpdateVendorHelp) end
         end)
 
+    CreateRow(window, 0, true,
+        function() return "Show the worn-gear line on screen" end,
+        function() return ns.db.wornBanner end,
+        function()
+            ns.db.wornBanner = not ns.db.wornBanner
+            pcall(ns.UpdateDurability)
+        end)
+
+    -- Two columns under headings. The rows were made in the order above
+    -- (which /junkmate and the tests rely on); here is where each one goes.
+    local LEFT, RIGHT = 14, 338
+    local function Heading(text, x, y)
+        local heading = window:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        heading:SetPoint("TOPLEFT", x + 2, y)
+        heading:SetText(text)
+        heading:SetTextColor(ACCENT_R, ACCENT_G, ACCENT_B)
+    end
+    Heading("At a vendor", LEFT, -88)
+    Heading("Worn gear", LEFT, -258)
+    Heading("Bags", RIGHT, -88)
+    Heading("Tooltips and minimap", RIGHT, -288)
+    local PLACES = {
+        [1] = { LEFT, -108 },   -- sell junk
+        [13] = { LEFT, -136 },  -- also sell outgrown food, unusable gear
+        [2] = { LEFT, -164 },   -- repair
+        [3] = { LEFT, -192 },   -- say in chat
+        [18] = { LEFT, -220 },  -- name the nearest vendor
+        [4] = { LEFT, -278 },   -- warn when gear is wearing out
+        [19] = { LEFT, -306 },  -- the worn-gear line on screen
+        [5] = { LEFT, -336 },   -- warn below N%
+        [16] = { LEFT, -366 },  -- track repairers on the minimap
+        [17] = { LEFT, -394 },  -- point to the nearest repairer
+        [6] = { RIGHT, -108 },  -- warn when bags are nearly full
+        [7] = { RIGHT, -136 },  -- warn at N free slots
+        [10] = { RIGHT, -166 }, -- make room when loot won't fit
+        [11] = { RIGHT, -194 }, -- restack
+        [15] = { RIGHT, -222 }, -- open clams
+        [12] = { RIGHT, -250 }, -- tidy the bank
+        [8] = { RIGHT, -308 },  -- vendor prices on tooltips
+        [14] = { RIGHT, -336 }, -- say on tooltips what JunkMate does
+        [9] = { RIGHT, -364 },  -- the minimap button
+    }
+    for index, row in ipairs(controls) do
+        local place = PLACES[index]
+        if place then
+            row:ClearAllPoints()
+            row:SetPoint("TOPLEFT", place[1], place[2])
+        end
+    end
+
     local hint = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("BOTTOMLEFT", 16, 12)
-    hint:SetText("Hold Shift while opening a vendor or the bank to skip it.")
+    hint:SetText("Hold Shift at a vendor or the bank to skip it. Drag the worn-gear line to move it.")
 end
 
 function ns.RefreshOptions()

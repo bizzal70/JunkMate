@@ -1,5 +1,11 @@
 # JunkMate
 
+## 0.15.0
+
+- **The options window is in two columns under headings** (At a vendor, Worn gear, Bags, Tooltips and minimap), about half as tall, so it fits small screens like the Legion Go.
+- **The worn-gear line on screen has its own switch** ("Show the worn-gear line on screen", or `/junkmate banner`). With it off, the hammer on the minimap button and the chat line still warn you.
+- **Moving it:** hover the line for how; drag it anywhere and it stays there. `/junkmate banner reset` puts it back at the top of the screen.
+
 ## 0.14.2
 
 - **No more "Junk to sell" banner on screen:** the gold coin on the minimap button says it instead. Hover the button for what the junk is worth and the nearest vendor you've used; **right-click** it for a map pin on that vendor. Known vendors still say on their tooltip that they'll buy your junk.
