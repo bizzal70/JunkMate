@@ -1,5 +1,12 @@
 # JunkMate
 
+## 0.20.0
+
+- **Destroy all greys in one press:** when you have two or more grey items, the make-room window adds a button for all of them at once (*"Destroy all 4 grey items (worth 23c)"*; D-pad up on a controller), so one press frees several slots instead of one window per item.
+- **Help before the bags are full:** the "Only 2 bag slots left" line now says what would go next (*"Next to go: Broken Fang (5c)"*) and offers to destroy every grey item now.
+- **Make room anyway:** when the loot is worth less than anything JunkMate would destroy, the chat line now offers to make room anyway. `/junkmate room` always does, and `/junkmate greys` offers every grey item.
+- Those offers are clickable links where the game allows addon links; otherwise the line names the command to type.
+
 ## 0.19.0
 
 The make-room window, from the user-experience review:

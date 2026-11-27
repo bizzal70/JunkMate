@@ -842,10 +842,17 @@ end
 window.destroy = Button("JunkMateRoomDestroy", "|cffff6666Destroy|r", 14)
 window.next = Button("JunkMateRoomNext", "Not this one", 134)
 window.keep = Button("JunkMateRoomKeep", "Keep always", 254)
+-- Shown when there are two or more grey items: one press for all of them.
+window.greys = Button("JunkMateRoomGreys", "", 14)
+window.greys:SetSize(352, 24)
+window.greys:ClearAllPoints()
+window.greys:SetPoint("BOTTOMLEFT", 14, 62)
+window.greys:Hide()
+local BASE_HEIGHT = 216
 
 local hint = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 hint:SetPoint("BOTTOMLEFT", 14, 11)
-local PAD_HINT = "Controller: Y destroy, RB not this one, LB keep always, B close"
+local PAD_HINT = "Controller: Y destroy, D-pad up all greys, RB next, LB keep, B close"
 hint:SetText(PAD_HINT)
 
 -- Tucked away during a fight: the offer waits, hidden, and comes back
@@ -865,19 +872,20 @@ window:HookScript("OnShow", function()
 end)
 -- Not A, X or B's loot-window jobs (A loot, X loot all): Y destroys, the
 -- shoulder buttons skip or keep.
-ns.CloseWithPadB(window, { PAD4 = "JunkMateRoomDestroy", PADRSHOULDER = "JunkMateRoomNext", PADLSHOULDER = "JunkMateRoomKeep" })
+ns.CloseWithPadB(window, { PAD4 = "JunkMateRoomDestroy", PADRSHOULDER = "JunkMateRoomNext", PADLSHOULDER = "JunkMateRoomKeep",
+    PADDUP = "JunkMateRoomGreys" })
 
 -- 2. The buttons stay dimmed for the short pause in which presses don't
 -- count, then light up.
 local function Arm(seconds)
     armedAt = GetTime() + seconds
-    for _, button in ipairs({ window.destroy, window.next, window.keep }) do
+    for _, button in ipairs({ window.destroy, window.next, window.keep, window.greys }) do
         button:SetAlpha(0.35)
         button.dimmed = true
     end
     C_Timer.After(seconds, function()
         if GetTime() < armedAt then return end
-        for _, button in ipairs({ window.destroy, window.next, window.keep }) do
+        for _, button in ipairs({ window.destroy, window.next, window.keep, window.greys }) do
             button:SetAlpha(1)
             button.dimmed = false
         end
@@ -931,7 +939,7 @@ end
 
 -- Puts the next thing JunkMate would destroy in the window, to make room
 -- for `loot` (or just to free a slot). Returns whether it shows anything.
-function ns.OfferRoom(loot, always)
+function ns.OfferRoom(loot, always, force)
     local found = ns.Survey(true)
     local pick, spareReason
     for _, item in ipairs(found.list) do
@@ -961,13 +969,32 @@ function ns.OfferRoom(loot, always)
         end
         return false
     end
-    if not ns.WorthIt(loot, pick) then
+    if not force and not ns.WorthIt(loot, pick) then
         window:Hide()
-        Say(("Your bags are full. %s is worth less than %s, the cheapest thing JunkMate would throw away, so it stays on the ground.")
-            :format(loot.link, pick.link), always)
+        Say(("Your bags are full. %s is worth less than %s, the cheapest thing JunkMate would throw away, so it stays on the ground. %s")
+            :format(loot.link, pick.link, ns.ActionLink("room", "Make room anyway")), always)
         return false
     end
     current = { item = pick, loot = loot }
+    -- Two or more grey items: offer them all at once.
+    local greys, worth = {}, 0
+    if not spareReason then
+        for _, item in ipairs(found.list) do
+            if item.tier == 1 and not skipped[item.bag .. ":" .. item.slot] then
+                greys[#greys + 1] = item
+                worth = worth + (item.value or 0)
+            end
+        end
+    end
+    current.greys = #greys >= 2 and greys or nil
+    if current.greys then
+        window.greys.label:SetText(("Destroy all %d grey items (worth %s)"):format(#greys, worth > 0 and ns.Money(worth) or "nothing"))
+        window.greys:Show()
+        window:SetHeight(BASE_HEIGHT + 30)
+    else
+        window.greys:Hide()
+        window:SetHeight(BASE_HEIGHT)
+    end
     window.reason:SetText(Explain(pick, spareReason and found.spare or found.list, spareReason))
     window.icon.texture:SetTexture(pick.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
     window.what:SetText(("Destroy %s%s (worth %s)?"):format(pick.link, Amount(pick), pick.value > 0 and ns.Money(pick.value) or "nothing"))
@@ -1034,6 +1061,56 @@ local function DestroyCurrent()
     ns.pendingQuest = loot and loot.quest or false
     window:Hide()
 end
+
+-- Destroys every grey item on offer, one after another, checking each is
+-- still what it was. Stops at the first the game won't let go.
+local function DestroyGreys()
+    if not (current and current.greys) or GetTime() < armedAt then return end
+    if CursorHasItem() then
+        ns.Print("You are holding an item. Put it down first; nothing was destroyed.")
+        return
+    end
+    local loot = current.loot
+    local count, worth, stopped = 0, 0, nil
+    for _, item in ipairs(current.greys) do
+        local info = C_Container.GetContainerItemInfo(item.bag, item.slot)
+        if type(info) == "table" and info.itemID == item.itemID and not info.isLocked and (info.stackCount or 1) == item.count then
+            C_Container.PickupContainerItem(item.bag, item.slot)
+            local kind, held = GetCursorInfo()
+            if kind ~= "item" or held ~= item.itemID then
+                if CursorHasItem() then ClearCursor() end
+                stopped = "JunkMate could not pick one up"
+                break
+            end
+            pcall(DeleteCursorItem)
+            if CursorHasItem() then
+                ClearCursor()
+                stopped = "the game wouldn't let JunkMate destroy more"
+                break
+            end
+            ns.destroyed[#ns.destroyed + 1] = { link = item.link, count = item.count, value = item.value }
+            count, worth = count + 1, worth + (item.value or 0)
+        end
+    end
+    if count == 0 then
+        ns.Print("Nothing was destroyed" .. (stopped and (": " .. stopped) or "") .. ".")
+        ns.OfferRoom(loot, true)
+        return
+    end
+    ns.Print(("Destroyed %d grey item%s (worth %s) to make room.%s"):format(count, count == 1 and "" or "s",
+        ns.Money(worth), stopped and (" Stopped: " .. stopped .. ".") or ""))
+    ns.pendingLoot = loot and loot.slot or nil
+    ns.pendingQuest = loot and loot.quest or false
+    window:Hide()
+end
+
+window.greys:SetScript("OnClick", function()
+    local ok, problem = pcall(DestroyGreys)
+    if not ok then
+        if CursorHasItem and CursorHasItem() then pcall(ClearCursor) end
+        ns.Print("Something went wrong, so nothing more was destroyed: " .. tostring(problem))
+    end
+end)
 
 local function OnDestroy()
     local ok, problem = pcall(DestroyCurrent)
@@ -1248,13 +1325,52 @@ end
 
 -- /junkmate room: the same offer, by hand, for the loot window if open.
 function ns.MakeRoomCommand()
+    -- By hand: offered even when the loot is worth less ("make room anyway").
     if ns.Restack(function(slots)
         SayRestacked(slots)
-        if slots == 0 then ns.OfferRoom(LootOpen() and ns.LootWanted() or nil, true) end
+        if slots == 0 then ns.OfferRoom(LootOpen() and ns.LootWanted() or nil, true, true) end
     end) then
         return
     end
-    ns.OfferRoom(LootOpen() and ns.LootWanted() or nil, true)
+    ns.OfferRoom(LootOpen() and ns.LootWanted() or nil, true, true)
+end
+
+-- What would go next if the bags filled: the item, and how many grey items
+-- there are with what they're worth.
+function ns.NextToGo()
+    local list = ns.RoomCandidates()
+    local greys, worth = 0, 0
+    for _, item in ipairs(list) do
+        if item.tier == 1 then greys, worth = greys + 1, worth + (item.value or 0) end
+    end
+    return list[1], greys, worth
+end
+
+-- /junkmate greys: the make-room window, with every grey item on offer.
+function ns.GreysCommand()
+    local _, greys = ns.NextToGo()
+    if greys == 0 then
+        ns.Print("No grey items in your bags.")
+        return
+    end
+    ns.OfferRoom(LootOpen() and ns.LootWanted() or nil, true, true)
+end
+
+-- A clickable [text] in chat that runs /junkmate <action>, where the game
+-- lets addons make their own links; otherwise the command to type.
+local linkActions = { room = function() ns.MakeRoomCommand() end, greys = function() ns.GreysCommand() end }
+local linksWork = false
+if EventRegistry and EventRegistry.RegisterCallback then
+    linksWork = pcall(EventRegistry.RegisterCallback, EventRegistry, "SetItemRef", function(_, link)
+        local action = type(link) == "string" and link:match("^addon:JunkMate:(%a+)")
+        if action and linkActions[action] then pcall(linkActions[action]) end
+    end, ns)
+end
+function ns.ActionLink(action, text)
+    if linksWork then
+        return ("|cff66bbff|Haddon:JunkMate:%s|h[%s]|h|r"):format(action, text)
+    end
+    return ("(%s: /junkmate %s)"):format(text, action)
 end
 
 function ns.RestackCommand()

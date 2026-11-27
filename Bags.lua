@@ -91,7 +91,20 @@ function ns.UpdateBags()
         warnedFull = false
         if not warnedLow then
             warnedLow = true
-            ns.Print(("Only %d bag slot%s left."):format(free, free == 1 and "" or "s"))
+            local text = ("Only %d bag slot%s left."):format(free, free == 1 and "" or "s")
+            -- What would go next, and every grey item at once.
+            if ns.NextToGo then
+                local ok, item, greys, worth = pcall(ns.NextToGo)
+                if ok and item then
+                    text = text .. (" Next to go: %s%s (%s)."):format(item.link, item.count > 1 and (" x%d"):format(item.count) or "",
+                        item.value > 0 and ns.Money(item.value) or "worth nothing")
+                end
+                if ok and greys and greys > 0 then
+                    text = text .. " " .. ns.ActionLink("greys", ("Destroy %s now"):format(greys == 1 and "the grey item"
+                        or ("all %d grey items (%s)"):format(greys, ns.Money(worth))))
+                end
+            end
+            ns.Print(text)
         end
     end
 end

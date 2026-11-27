@@ -645,6 +645,7 @@ do
     SetOverrideBinding = function(_, _, key, command) bound[key] = command end
     ClearOverrideBindings = function() bound = {} end
     room:Show(); room.__scripts.OnShow(room)
+    check(bound.PADDUP == "CLICK JunkMateRoomGreys:LeftButton", "D-pad up destroys all the greys")
     check(bound.PAD4 == "CLICK JunkMateRoomDestroy:LeftButton" and bound.PADRSHOULDER == "CLICK JunkMateRoomNext:LeftButton"
         and bound.PADLSHOULDER == "CLICK JunkMateRoomKeep:LeftButton" and bound.PAD2 ~= nil and bound.PAD1 == nil and bound.PAD3 == nil,
         "Y destroys, RB skips, LB keeps and B closes; A and X are left to the loot window")
@@ -1679,5 +1680,78 @@ do
     LootFrame:Hide()
     LOOTS = {}
     AFTERS = {}
+end
+
+-- 4-6: all greys at once, help before full, make room anyway.
+do
+    local function Item(id, count)
+        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1, isBound = true }
+    end
+    local function RunAfters()
+        for _ = 1, 4 do
+            local timers = AFTERS; AFTERS = {}
+            for _, fn in ipairs(timers) do fn() end
+        end
+    end
+    local room = JunkMateRoom
+    room:Hide(); room.__scripts.OnHide(room)
+    Fire("LOOT_CLOSED"); Fire("QUEST_FINISHED")
+    ns.db.roomPoint = nil
+    -- Three greys in full bags, a green that won't fit.
+    local list = {}
+    for i = 1, 13 do list[i] = Item(9020) end
+    list[14], list[15], list[16] = Item(9001), Item(9002), Item(9042)
+    BAGS[0] = list
+    for bag = 1, 4 do BAGS[bag] = {} end
+    LOOTS = { { link = "item:9040", name = "Green Bracers", q = 2 } }
+    Fire("UI_ERROR_MESSAGE", 3, "Inventory is full.")
+    local timers = AFTERS; AFTERS = {}
+    for _, fn in ipairs(timers) do fn() end
+    check(room:IsShown() and room.greys:IsShown() and room.greys.label:GetText() == "Destroy all 3 grey items (worth 61c)",
+        "with several greys, the window offers them all at once: " .. tostring(room.greys.label:GetText()))
+    local deleted = #DELETED
+    room.greys.__scripts.OnClick(room.greys)
+    check(#DELETED == deleted, "not before presses count")
+    NOW = NOW + 2
+    room.greys.__scripts.OnClick(room.greys)
+    check(#DELETED == deleted + 3 and BAGS[0][14] == false and BAGS[0][15] == false and BAGS[0][16] == false,
+        "one press destroys all three")
+    check(PRINTED[#PRINTED]:find("Destroyed 3 grey items (worth 61c) to make room.", 1, true), "and says so: " .. PRINTED[#PRINTED])
+    room.__scripts.OnHide(room)
+    Fire("BAG_UPDATE_DELAYED")
+    Fire("LOOT_CLOSED")
+    -- One grey: no all-greys button.
+    BAGS[0][14], BAGS[0][15], BAGS[0][16] = Item(9001), Item(9020), Item(9020)
+    SlashCmdList.JUNKMATE("room")
+    check(room:IsShown() and not room.greys:IsShown(), "with one grey, no all-greys button")
+    room:Hide(); room.__scripts.OnHide(room)
+    -- Help before full: the warning says what's next, and offers the greys.
+    local saved = BAGS[0]
+    BAGS[0] = { false, false, false, false, false, false, false, false }
+    Fire("BAG_UPDATE_DELAYED")   -- room again, so the warning can be given afresh
+    BAGS[0] = saved
+    BAGS[0][15], BAGS[0][16] = false, Item(9002)
+    NOW = NOW + 100
+    Fire("BAG_UPDATE_DELAYED")
+    local warning
+    for i = #PRINTED, math.max(1, #PRINTED - 5), -1 do
+        if PRINTED[i]:find("Only 1 bag slot left.", 1, true) then warning = PRINTED[i] break end
+    end
+    check(warning and warning:find("Next to go: item:9001 (5c).", 1, true) and warning:find("/junkmate greys", 1, true),
+        "the bags warning says what's next and how to destroy the greys: " .. tostring(warning))
+    SlashCmdList.JUNKMATE("greys")
+    check(room:IsShown() and room.greys:IsShown(), "/junkmate greys offers them all")
+    room:Hide(); room.__scripts.OnHide(room)
+    -- Make room anyway.
+    BAGS[0][15] = Item(9020)
+    LOOTS = { { link = "item:9041", name = "Shiny Pebble", q = 1 } }
+    Fire("UI_ERROR_MESSAGE", 3, "Inventory is full.")
+    RunAfters()
+    check(not room:IsShown() and PRINTED[#PRINTED]:find("Make room anyway: /junkmate room", 1, true), "loot not worth it: chat offers to make room anyway")
+    SlashCmdList.JUNKMATE("room")
+    check(room:IsShown() and room.why:GetText():find("item:9041", 1, true), "and /junkmate room does, for that loot")
+    room:Hide(); room.__scripts.OnHide(room)
+    Fire("LOOT_CLOSED")
+    LOOTS = {}
 end
 

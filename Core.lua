@@ -322,6 +322,9 @@ SlashCmdList.JUNKMATE = function(msg)
     elseif command == "open" then
         ns.OpenContainers(true)
         return
+    elseif command == "greys" or command == "grays" then
+        ns.GreysCommand()
+        return
     elseif command == "unpin" then
         ns.ClearMapPin()
         return
@@ -405,7 +408,8 @@ SlashCmdList.JUNKMATE = function(msg)
         ns.Print("/junkmate bags - warn when your bags are nearly full, on or off")
         ns.Print("/junkmate price - vendor prices on item tooltips, on or off")
         ns.Print("/junkmate button - show or hide the minimap button")
-        ns.Print("/junkmate room - offer the cheapest thing to destroy to free a slot (room reset puts the window back)")
+        ns.Print("/junkmate room - offer the cheapest thing to destroy to free a slot, even for loot worth less (room reset puts the window back)")
+        ns.Print("/junkmate greys - offer to destroy every grey item at once")
         ns.Print("/junkmate restack - put partial stacks together")
         ns.Print("/junkmate open - open clams and other things that open")
         ns.Print("/junkmate repairer - the nearest repairer you've used, with a map pin")
