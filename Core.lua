@@ -41,6 +41,10 @@ local defaults = {
     bankTidy = true,
 }
 
+-- Names in the game's Key Bindings window (Bindings.xml).
+BINDING_HEADER_JUNKMATE = "JunkMate"
+BINDING_NAME_JUNKMATE_DESTROY = "Make room: destroy the offered item"
+
 function ns.Print(msg)
     print("|cffd9a066JunkMate|r: " .. tostring(msg))
 end

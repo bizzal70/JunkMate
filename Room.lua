@@ -594,6 +594,11 @@ window:HookScript("OnShow", function()
 end)
 ns.CloseWithPadB(window, { PAD1 = "JunkMateRoomDestroy", PAD3 = "JunkMateRoomNext", PAD4 = "JunkMateRoomKeep" })
 
+-- A quest item that will not fit: offered at once, even in a fight.
+function ns.IsEmergency(loot)
+    return loot ~= nil and loot.score >= 4
+end
+
 local function Say(text, always)
     if said and not always then return end
     said = true
@@ -634,7 +639,11 @@ function ns.OfferRoom(loot, always)
         window.why:SetText("To free a bag slot.")
     end
     armedAt = GetTime() + ARM_SECONDS
-    if inFight then
+    local emergency = ns.IsEmergency(loot)
+    window.title:SetText(emergency and "|cffffd100Make room for the quest item?|r" or "Make room?")
+    hint:SetText(inFight and "In a fight: click Destroy, or press your JunkMate key binding"
+        or "Controller: A destroy, X not this one, Y keep always, B close")
+    if inFight and not emergency then
         if not tucked then
             tucked = true
             window:Hide()
@@ -678,13 +687,19 @@ local function DestroyCurrent()
     window:Hide()
 end
 
-window.destroy:SetScript("OnClick", function()
+local function OnDestroy()
     local ok, problem = pcall(DestroyCurrent)
     if not ok then
         if CursorHasItem and CursorHasItem() then pcall(ClearCursor) end
         ns.Print("Something went wrong, so nothing was destroyed: " .. tostring(problem))
     end
-end)
+end
+window.destroy:SetScript("OnClick", OnDestroy)
+
+-- The key binding (Key Bindings > AddOns > JunkMate), which works in a fight.
+function JunkMate_DestroyOffered()
+    if window:IsShown() then OnDestroy() end
+end
 window.next:SetScript("OnClick", function()
     if not current or GetTime() < armedAt then return end
     local item, loot = current.item, current.loot
@@ -708,12 +723,24 @@ local function LootOpen()
 end
 
 local function OnBagsFull()
-    if not (ns.db and ns.db.makeRoom) or restackTicker or window:IsShown() or not LootOpen() then return end
+    if not (ns.db and ns.db.makeRoom) or window:IsShown() or not LootOpen() then return end
+    if restackTicker then
+        -- Already restacking: look again once that is done.
+        C_Timer.After(0.5, function() pcall(OnBagsFull) end)
+        return
+    end
     local loot = ns.LootWanted()
     if not loot then return end
-    -- Restacking loses nothing, so it always comes first.
+    -- Room already (a restack just finished, say): take it.
+    local okFree, free = pcall(ns.FreeBagSlots)
+    if okFree and free and free > 0 then
+        if LootSlot then pcall(LootSlot, loot.slot) end
+        return
+    end
+    -- Restacking loses nothing, so it comes first; but not for a quest item
+    -- in a fight, where it would take too long.
     local _, freed = ns.RestackPlan()
-    if freed > 0 then
+    if freed > 0 and not (inFight and ns.IsEmergency(loot)) then
         ns.Restack(function(slots)
             SayRestacked(slots)
             if LootOpen() and LootSlot then pcall(LootSlot, loot.slot) end
@@ -770,7 +797,8 @@ events:SetScript("OnEvent", function(_, event, ...)
         end
     elseif event == "PLAYER_REGEN_DISABLED" then
         inFight = true
-        if window:IsShown() then
+        -- A quest item on offer stays, so it can still be looted.
+        if window:IsShown() and not (current and ns.IsEmergency(current.loot)) then
             tucked = true
             window:Hide()
         end

@@ -25,7 +25,7 @@ It also **warns you when your bags are nearly full**. Down to your last 4 slots,
 
 > Destroy [Broken Fang] (worth 5c)? To make room for [Green Bracers].
 
-The window opens on the left of the screen, above the chat, so it never covers the middle; drag it wherever you like. During a fight it stays hidden and comes back once the fight is over.
+The window opens on the left of the screen, above the chat, so it never covers the middle; drag it wherever you like. During a fight it stays hidden and comes back once the fight is over, except for **quest items**: if one won't fit mid-fight, the window shows at once so you can grab it and run. In a fight the controller's A button can't be borrowed, so click Destroy, or set the key binding (Key Bindings > AddOns > JunkMate > "Make room: destroy the offered item").
 
 **Nothing is ever destroyed until you press Destroy.** Then the loot is picked up for you. Press **Not this one** to see the next choice, or **Keep always** so JunkMate never offers that item again.
 

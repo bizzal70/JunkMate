@@ -597,6 +597,47 @@ do
     check(room:IsShown(), "then offers after the fight")
     room:Hide(); room.__scripts.OnHide(room)
 
+    -- A quest item in a fight: offered at once, no restacking first.
+    BAGS[0][15] = Item(2589, 3); BAGS[0][14] = Item(2589, 4)
+    ITEMS[9050] = { name = "Gnoll Collar", q = 1, price = 0, class = 12, sub = 0 }
+    LOOTS = { { link = "item:9050", name = "Gnoll Collar", q = 1 } }
+    Fire("PLAYER_REGEN_DISABLED")
+    Fire("UI_ERROR_MESSAGE", 3, "Inventory is full.")
+    RunAfters()
+    check(room:IsShown() and #tickers == 0 and room.title:GetText():find("quest item", 1, true),
+        "a quest item that will not fit, mid-fight: the window shows at once, without restacking first")
+    check(room.why:GetText():find("item:9050", 1, true) ~= nil, "offering room for the quest item")
+    local deleted = #DELETED
+    NOW = NOW + 1
+    JunkMate_DestroyOffered()
+    check(#DELETED == deleted + 1 and not room:IsShown(), "the key binding destroys the offered item, even in a fight")
+    room.__scripts.OnHide(room)
+    Fire("BAG_UPDATE_DELAYED")
+    check(LOOTED[#LOOTED] == 1, "and the quest item is looted")
+    Fire("LOOT_CLOSED")
+    BAGS[0][16] = Item(9001)
+    BAGS[0][14] = Item(9002); BAGS[0][15] = Item(9022)
+    Fire("PLAYER_REGEN_ENABLED")
+    LOOTS = { { link = "item:9050", name = "Gnoll Collar", q = 1 } }
+    Fire("UI_ERROR_MESSAGE", 3, "Inventory is full.")
+    RunAfters()
+    local looted = #LOOTED
+    check(not room:IsShown() and ns.Restacking(), "(a restack was already under way)")
+    RunTickers()
+    RunAfters()
+    check(not room:IsShown() and LOOTED[#LOOTED] == 1 and #LOOTED == looted + 1,
+        "loot that will not fit while the bags are being restacked is looted once that has made room")
+    for i = 1, 16 do if not BAGS[0][i] then BAGS[0][i] = Item(9022) end end
+    Fire("UI_ERROR_MESSAGE", 3, "Inventory is full.")
+    RunAfters()
+    check(room:IsShown(), "(a quest-item offer, out of a fight)")
+    Fire("PLAYER_REGEN_DISABLED")
+    check(room:IsShown(), "a quest-item offer already open stays open when a fight starts")
+    room:Hide(); room.__scripts.OnHide(room)
+    Fire("PLAYER_REGEN_ENABLED")
+    Fire("LOOT_CLOSED")
+    LOOTS = {}
+
     -- Controller buttons while it is open.
     local bound = {}
     SetOverrideBinding = function(_, _, key, command) bound[key] = command end

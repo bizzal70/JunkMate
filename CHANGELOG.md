@@ -1,5 +1,11 @@
 # JunkMate
 
+## 0.8.2
+
+- **Quest items in a fight:** if a quest item won't fit while you're fighting, the make-room window shows at once (titled "Make room for the quest item?") instead of waiting for the fight to end, and it skips restacking so it's quick. Click **Destroy** and the quest item is looted straight away, so you can grab it and run. Other loot still waits until the fight is over.
+- **New key binding:** Key Bindings > AddOns > JunkMate > "Make room: destroy the offered item". It works mid-fight, when the controller's A button can't be borrowed, so bind it to a key or a controller button combination.
+- Fixed: loot that didn't fit while JunkMate was busy restacking the bags was ignored. It's now looted as soon as the restack makes room.
+
 ## 0.8.1
 
 - **The make-room window is out of your way:** it now opens on the left side of the screen, above the chat, instead of over the middle. Drag it anywhere and it stays there (`/junkmate room reset` puts it back).
