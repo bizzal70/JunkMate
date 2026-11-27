@@ -404,6 +404,22 @@ function ns.IsUpgrade(facts, context)
     return facts.itemLevel > (weakest or math.huge)
 end
 
+-- The item level of what is worn where gear would go (for rings and
+-- trinkets, the weaker of the two), or nil.
+local function WornLevel(facts)
+    local slots = facts.equipLoc and SLOTS[facts.equipLoc]
+    if not slots or not GetInventoryItemLink then return end
+    local weakest
+    for _, slot in ipairs(slots) do
+        local link = GetInventoryItemLink("player", slot)
+        local worn = link and ns.ItemFacts(link)
+        if worn and worn.itemLevel and (not weakest or worn.itemLevel < weakest) then weakest = worn.itemLevel end
+    end
+    return weakest
+end
+
+local ARMOR_NAMES = { [1] = "cloth", [2] = "leather", [3] = "mail", [4] = "plate", [6] = "shields" }
+
 -- Why a kind of item is always kept.
 local CLASS_REASONS = {
     [1] = "a bag", [3] = "a gem", [5] = "a reagent", [6] = "ammo", [7] = "a crafting material",
@@ -474,7 +490,10 @@ function ns.Survey(fresh)
         if TOOLS[item.itemID] then return nil, "a profession tool" end
         if KEEP[item.itemID] then return nil, "always kept" end
         local quality = item.quality or facts.quality
-        if quality == 0 then return 1, "a grey item" end
+        if quality == 0 then
+            item.detail = "it's grey junk"
+            return 1, "a grey item"
+        end
         if not quality then return end
         if quality >= EPIC then return nil, "epic or better" end
         if not facts.classID then return end
@@ -483,6 +502,9 @@ function ns.Survey(fresh)
             if not item.food then return nil, "a potion or other consumable" end
             if item.buff then return nil, "buff food" end
             if IsBestFood(item) then return nil, "your best food or drink for your level" end
+            local better = item.food == "food" and best.food or item.food == "drink" and best.drink or math.max(best.food, best.drink)
+            item.detail = ("it's %s you've outgrown (level %d; you also carry level %d)"):format(
+                item.food == "drink" and "drink" or "food", facts.minLevel, better)
             return 2, "outgrown food or drink"
         end
         if facts.classID == WEAPON or facts.classID == ARMOR then
@@ -492,6 +514,14 @@ function ns.Survey(fresh)
             if HasEffect(item) then return nil, "it has a special effect" end
             if ns.IsUpgrade(facts, context) then return nil, "an upgrade for you" end
             item.wearable = ns.CanWear(facts, context)
+            if item.wearable then
+                local worn = WornLevel(facts)
+                item.detail = worn and ("it's no upgrade (item level %d; what you wear there is %d)"):format(facts.itemLevel or 0, worn)
+                    or "it's no upgrade"
+            else
+                item.detail = ("your class can't use %s"):format(
+                    facts.classID == ARMOR and ARMOR_NAMES[facts.subclassID] or "this kind of weapon")
+            end
             return 3, item.wearable and "gear that's no upgrade" or "gear you can't use"
         end
         return nil, "not junk"
@@ -690,7 +720,7 @@ ns.pendingLoot = nil     -- loot slot to take once the bags have room
 ns.destroyed = {}        -- this session's destroyed items, for /junkmate destroyed
 
 local window = CreateFrame("Frame", "JunkMateRoom", UIParent)
-window:SetSize(380, 176)
+window:SetSize(380, 216)
 -- Out of the middle of the screen: on the left, above the chat. Drag it
 -- anywhere; it remembers.
 local function PlaceWindow()
@@ -760,6 +790,12 @@ window.why:SetPoint("TOPLEFT", window.what, "BOTTOMLEFT", 0, -4)
 window.why:SetPoint("RIGHT", -14, 0)
 window.why:SetJustifyH("LEFT")
 window.why:SetWordWrap(true)
+window.reason = window:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+window.reason:SetPoint("TOPLEFT", window.why, "BOTTOMLEFT", 0, -6)
+window.reason:SetPoint("RIGHT", -14, 0)
+window.reason:SetJustifyH("LEFT")
+window.reason:SetWordWrap(true)
+window.reason:SetTextColor(0.85, 0.63, 0.40)
 
 local function Button(name, label, x)
     local button = CreateFrame("Button", name, window)
@@ -815,6 +851,36 @@ local function Amount(item)
     return item.count > 1 and (" x%d"):format(item.count) or ""
 end
 
+local GROUPS = { "grey items", "outgrown foods and drinks", "pieces of gear JunkMate would let go" }
+local LEADS = { "", "with no grey items to offer, ", "with no grey items or outgrown food to offer, " }
+
+-- Why JunkMate offers this item and not another, and what would go next.
+local function Explain(pick, list, spareReason)
+    local same, nextUp, seen = 0, nil, false
+    for _, item in ipairs(list) do
+        if not skipped[item.bag .. ":" .. item.slot] then
+            if item == pick then
+                seen = true
+            elseif seen and not nextUp then
+                nextUp = item
+            end
+            if item.tier and item.tier == pick.tier then same = same + 1 end
+        end
+    end
+    local why
+    if spareReason then
+        why = "Why this one: nothing junk is left, and it's the cheapest everyday thing you could spare."
+    else
+        why = ("Why this one: %s%s%s."):format(LEADS[pick.tier] or "", pick.detail or pick.reason or "it could go",
+            same > 1 and ("; the cheapest of %d %s"):format(same, GROUPS[pick.tier]) or "")
+    end
+    if nextUp then
+        why = why .. ("\n|cffaaaaaaNext in line: %s%s (worth %s).|r"):format(nextUp.link, Amount(nextUp),
+            nextUp.value > 0 and ns.Money(nextUp.value) or "nothing")
+    end
+    return why
+end
+
 -- Puts the next thing JunkMate would destroy in the window, to make room
 -- for `loot` (or just to free a slot). Returns whether it shows anything.
 function ns.OfferRoom(loot, always)
@@ -854,6 +920,7 @@ function ns.OfferRoom(loot, always)
         return false
     end
     current = { item = pick, loot = loot }
+    window.reason:SetText(Explain(pick, spareReason and found.spare or found.list, spareReason))
     window.icon.texture:SetTexture(pick.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
     window.what:SetText(("Destroy %s%s (worth %s)?"):format(pick.link, Amount(pick), pick.value > 0 and ns.Money(pick.value) or "nothing"))
     if loot and loot.quest then

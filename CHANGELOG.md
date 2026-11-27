@@ -1,5 +1,13 @@
 # JunkMate
 
+## 0.12.0
+
+- **The make-room window says why it picked that item,** and what would go next. JunkMate offers grey items first, then food and drink you have outgrown, then gear that is no upgrade, cheapest first; now it says so for the item on offer:
+  - *"Why this one: it's grey junk; the cheapest of 4 grey items."*
+  - *"Why this one: with no grey items to offer, it's food you've outgrown (level 5; you also carry level 15)."*
+  - *"...it's no upgrade (item level 5; what you wear there is 12)"* or *"...your class can't use mail."*
+  - *"Next in line: Torn Pelt (worth 50c)."*
+
 ## 0.11.0
 
 - **Opens clams and other "Right Click to Open" items** when your bags get down to the warning level, before warning you. Nine clams become one stack of clam meat and the odd pearl, which frees several slots. One at a time, taking what's inside each (even with auto loot off), and chat says how many slots it freed. Type `/junkmate open` to do it now.

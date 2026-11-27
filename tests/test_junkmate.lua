@@ -1184,3 +1184,37 @@ do
     check(#ticks == 0, "with the option off, nothing is opened")
     ns.db.openContainers = true
 end
+
+-- The window says why it offers this item, and what would go next.
+do
+    local function Item(id, count)
+        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1, isBound = true }
+    end
+    local room = JunkMateRoom
+    room:Hide(); room.__scripts.OnHide(room)
+    Fire("LOOT_CLOSED"); Fire("QUEST_FINISHED")
+    LOOTS = {}
+    local list = {}
+    for i = 1, 10 do list[i] = Item(9020) end
+    list[11], list[12] = Item(9002), Item(9001)          -- greys worth 50c and 5c
+    list[13], list[14] = Item(9010, 3), Item(9011, 4)    -- jerky (level 5) and quail (level 15)
+    list[15], list[16] = Item(9022), Item(9021)          -- cloth gloves (ilvl 5 vs 12 worn), mail chest
+    BAGS[0] = list
+    for bag = 1, 4 do BAGS[bag] = {} end
+    local function Reason() return room.reason:GetText() or "" end
+    SlashCmdList.JUNKMATE("room")
+    check(Reason():find("Why this one: it's grey junk; the cheapest of 2 grey items.", 1, true)
+        and Reason():find("Next in line: item:9002 (worth 50c).", 1, true), "a grey: why, and what's next: " .. Reason())
+    NOW = NOW + 2
+    NOW = NOW + 2; room.next.__scripts.OnClick(room.next)
+    NOW = NOW + 2; room.next.__scripts.OnClick(room.next)
+    check(Reason():find("Why this one: with no grey items to offer, it's food you've outgrown (level 5; you also carry level 15).", 1, true),
+        "outgrown food says what better food you carry: " .. Reason())
+    NOW = NOW + 2; room.next.__scripts.OnClick(room.next)
+    check(Reason():find("it's no upgrade (item level 5; what you wear there is 12); the cheapest of 2 pieces of gear", 1, true),
+        "gear that's no upgrade compares with what you wear: " .. Reason())
+    NOW = NOW + 2; room.next.__scripts.OnClick(room.next)
+    check(Reason():find("your class can't use mail", 1, true) and not Reason():find("Next in line", 1, true),
+        "gear the class can't use says why, and the last one has nothing next: " .. Reason())
+    room:Hide(); room.__scripts.OnHide(room)
+end
