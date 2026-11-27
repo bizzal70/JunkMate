@@ -81,7 +81,7 @@ Also: `/junkmate room` (make room now, without loot), `/junkmate restack` (resta
 
 ## Controller
 
-With a game controller, the **B** button closes the JunkMate window, like the X and Escape do. In the make-room window, **A** destroys, **X** shows the next choice and **Y** keeps the item always. While a window is open, B closes it; once it is closed, B goes back to whatever you have it set to. When a fight starts, B goes straight back to its usual job, even with the window open.
+With a game controller, the **B** button closes the JunkMate window, like the X and Escape do. In the make-room window, **Y** destroys, the **right shoulder** shows the next choice and the **left shoulder** keeps the item always, so A and X keep their jobs in the loot window. While a window is open, B closes it; once it is closed, B goes back to whatever you have it set to. When a fight starts, B goes straight back to its usual job, even with the window open.
 
 ## More from this author
 

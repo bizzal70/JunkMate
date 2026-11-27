@@ -645,8 +645,9 @@ do
     SetOverrideBinding = function(_, _, key, command) bound[key] = command end
     ClearOverrideBindings = function() bound = {} end
     room:Show(); room.__scripts.OnShow(room)
-    check(bound.PAD1 == "CLICK JunkMateRoomDestroy:LeftButton" and bound.PAD3 == "CLICK JunkMateRoomNext:LeftButton"
-        and bound.PAD4 == "CLICK JunkMateRoomKeep:LeftButton" and bound.PAD2 ~= nil, "A destroys, X skips, Y keeps and B closes")
+    check(bound.PAD4 == "CLICK JunkMateRoomDestroy:LeftButton" and bound.PADRSHOULDER == "CLICK JunkMateRoomNext:LeftButton"
+        and bound.PADLSHOULDER == "CLICK JunkMateRoomKeep:LeftButton" and bound.PAD2 ~= nil and bound.PAD1 == nil and bound.PAD3 == nil,
+        "Y destroys, RB skips, LB keeps and B closes; A and X are left to the loot window")
     room:Hide(); room.__scripts.OnHide(room)
     check(next(bound) == nil, "and they go back once it closes")
     ns.db.makeRoom = false
@@ -1633,5 +1634,50 @@ do
     WAYPOINT = { 1, 0.3, 0.3 }
     JunkMate_ClearMapPin()
     check(WAYPOINT == nil, "the key binding does the same")
+end
+
+-- Dimmed until presses count; beside the loot window.
+do
+    local function Item(id, count)
+        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1, isBound = true }
+    end
+    local room = JunkMateRoom
+    room:Hide(); room.__scripts.OnHide(room)
+    Fire("LOOT_CLOSED"); Fire("QUEST_FINISHED")
+    ns.db.roomPoint = nil
+    local list = {}
+    for i = 1, 15 do list[i] = Item(9020) end
+    list[16] = Item(9001)
+    BAGS[0] = list
+    LootFrame = CreateFrame("Frame", "LootFrame")
+    LootFrame:Show()
+    rawset(LootFrame, "GetCenter", function() return 900, 400 end)
+    rawset(UIParent, "GetWidth", function() return 1000 end)
+    AFTERS = {}
+    LOOTS = { { link = "item:9040", name = "Green Bracers", q = 2 } }
+    Fire("UI_ERROR_MESSAGE", 3, "Inventory is full.")
+    local timers = AFTERS; AFTERS = {}
+    for _, fn in ipairs(timers) do fn() end
+    check(room:IsShown() and room.__point[2] == LootFrame and room.__point[1] == "TOPRIGHT", "it opens beside the loot window (on the side with room)")
+    check(room.destroy.dimmed and room.next.dimmed, "the buttons start dimmed")
+    NOW = NOW + 1
+    timers = AFTERS; AFTERS = {}
+    for _, fn in ipairs(timers) do fn() end
+    check(not room.destroy.dimmed and not room.next.dimmed, "and light up once presses count")
+    room:Hide(); room.__scripts.OnHide(room)
+    Fire("LOOT_CLOSED")
+    -- Dragged somewhere: it opens there instead.
+    ns.db.roomPoint = { "CENTER", "CENTER", 100, 50 }
+    LOOTS = { { link = "item:9040", name = "Green Bracers", q = 2 } }
+    Fire("UI_ERROR_MESSAGE", 3, "Inventory is full.")
+    timers = AFTERS; AFTERS = {}
+    for _, fn in ipairs(timers) do fn() end
+    check(room.__point[1] == "CENTER" and room.__point[4] == 100, "if you've dragged it, it opens where you put it")
+    room:Hide(); room.__scripts.OnHide(room)
+    Fire("LOOT_CLOSED")
+    ns.db.roomPoint = nil
+    LootFrame:Hide()
+    LOOTS = {}
+    AFTERS = {}
 end
 

@@ -1,5 +1,13 @@
 # JunkMate
 
+## 0.19.0
+
+The make-room window, from the user-experience review:
+
+- **Controller buttons no longer clash with the loot window.** The loot window uses A (loot), X (loot all) and B (close), so pressing A to loot used to destroy an item instead. Now **Y destroys**, the **right shoulder** skips to the next item and the **left shoulder** keeps it always; A and X are the loot window's again. B still closes the make-room window first.
+- **The buttons are dimmed while presses don't count yet** (the short pause after the window appears), and light up when they do, so a press is never silently ignored.
+- **It opens beside the loot window** while that's open (or beside the quest window, for a quest reward), so it's where you're already looking. If you've dragged it somewhere yourself, it opens there instead.
+
 ## 0.18.1
 
 - **Removing the map pin:** with a controller the world map offers no way to remove a pin, so JunkMate adds one: type `/junkmate unpin`, or set the key binding *Key Bindings > AddOns > JunkMate > Remove the map pin* (a controller button works). It removes any map pin, and JunkMate's vendor pin then stays off until the next time you have junk.

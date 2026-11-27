@@ -734,6 +734,34 @@ local function PlaceWindow()
 end
 ns.PlaceRoomWindow = PlaceWindow
 PlaceWindow()
+
+-- Where to open for an offer: beside the loot window (or the quest window,
+-- for a quest reward) while one is open, so it's where you're looking;
+-- your own spot if you've dragged it; otherwise the usual place.
+local function PositionForOffer(loot)
+    if ns.db and type(ns.db.roomPoint) == "table" and ns.db.roomPoint[1] then
+        PlaceWindow()
+        return
+    end
+    local beside
+    for _, name in ipairs(loot and loot.quest and { "QuestFrame", "GossipFrame" } or { "LootFrame" }) do
+        local frame = _G[name]
+        if type(frame) == "table" and frame.IsShown and frame:IsShown() then beside = frame break end
+    end
+    if not beside then
+        PlaceWindow()
+        return
+    end
+    window:ClearAllPoints()
+    -- On whichever side has more room.
+    local x = beside.GetCenter and beside:GetCenter()
+    local middle = UIParent.GetWidth and (UIParent:GetWidth() or 0) / 2 or 0
+    if type(x) == "number" and x > middle then
+        window:SetPoint("TOPRIGHT", beside, "TOPLEFT", -10, 0)
+    else
+        window:SetPoint("TOPLEFT", beside, "TOPRIGHT", 10, 0)
+    end
+end
 window:SetFrameStrata("DIALOG")
 window:SetToplevel(true)
 window:SetClampedToScreen(true)
@@ -817,7 +845,8 @@ window.keep = Button("JunkMateRoomKeep", "Keep always", 254)
 
 local hint = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 hint:SetPoint("BOTTOMLEFT", 14, 11)
-hint:SetText("Controller: A destroy, X not this one, Y keep always, B close")
+local PAD_HINT = "Controller: Y destroy, RB not this one, LB keep always, B close"
+hint:SetText(PAD_HINT)
 
 -- Tucked away during a fight: the offer waits, hidden, and comes back
 -- once the fight is over.
@@ -834,7 +863,26 @@ window:HookScript("OnShow", function()
         window.placed = true
     end
 end)
-ns.CloseWithPadB(window, { PAD1 = "JunkMateRoomDestroy", PAD3 = "JunkMateRoomNext", PAD4 = "JunkMateRoomKeep" })
+-- Not A, X or B's loot-window jobs (A loot, X loot all): Y destroys, the
+-- shoulder buttons skip or keep.
+ns.CloseWithPadB(window, { PAD4 = "JunkMateRoomDestroy", PADRSHOULDER = "JunkMateRoomNext", PADLSHOULDER = "JunkMateRoomKeep" })
+
+-- 2. The buttons stay dimmed for the short pause in which presses don't
+-- count, then light up.
+local function Arm(seconds)
+    armedAt = GetTime() + seconds
+    for _, button in ipairs({ window.destroy, window.next, window.keep }) do
+        button:SetAlpha(0.35)
+        button.dimmed = true
+    end
+    C_Timer.After(seconds, function()
+        if GetTime() < armedAt then return end
+        for _, button in ipairs({ window.destroy, window.next, window.keep }) do
+            button:SetAlpha(1)
+            button.dimmed = false
+        end
+    end)
+end
 
 -- A quest item that will not fit: offered at once, even in a fight.
 function ns.IsEmergency(loot)
@@ -933,12 +981,11 @@ function ns.OfferRoom(loot, always)
     else
         window.why:SetText("To free a bag slot.")
     end
-    armedAt = GetTime() + ARM_SECONDS
+    Arm(ARM_SECONDS)
     local emergency = ns.IsEmergency(loot)
     window.title:SetText(loot and loot.quest and "|cffffd100Make room for your quest reward?|r"
         or emergency and "|cffffd100Make room for the quest item?|r" or "Make room?")
-    hint:SetText(inFight and "In a fight: click Destroy, or press your JunkMate key binding"
-        or "Controller: A destroy, X not this one, Y keep always, B close")
+    hint:SetText(inFight and "In a fight: click Destroy, or press your JunkMate key binding" or PAD_HINT)
     if inFight and not emergency then
         if not tucked then
             tucked = true
@@ -947,6 +994,7 @@ function ns.OfferRoom(loot, always)
         end
         return true
     end
+    PositionForOffer(loot)
     window:Show()
     return true
 end
@@ -1280,7 +1328,8 @@ events:SetScript("OnEvent", function(_, event, ...)
             if current then
                 -- Coming back on its own, while you may be running and
                 -- jumping: a longer pause before A (or a click) counts.
-                armedAt = GetTime() + RETURN_ARM_SECONDS
+                Arm(RETURN_ARM_SECONDS)
+                PositionForOffer(current.loot)
                 window:Show()
             end
         end
