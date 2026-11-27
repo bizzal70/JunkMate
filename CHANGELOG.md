@@ -1,5 +1,9 @@
 # JunkMate
 
+## 0.20.1
+
+- **Fixed: the vendor map pin wasn't cleared after selling your junk.** The game stores a pin's position slightly rounded, so JunkMate didn't recognise the pin as its own any more and left it alone (as it does with pins you place yourself). It now remembers where the game actually put it. A pin left over from before can be removed with `/junkmate unpin`.
+
 ## 0.20.0
 
 - **Destroy all greys in one press:** when you have two or more grey items, the make-room window adds a button for all of them at once (*"Destroy all 4 grey items (worth 23c)"*; D-pad up on a controller), so one press frees several slots instead of one window per item.

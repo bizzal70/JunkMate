@@ -271,7 +271,8 @@ local function PinIsOurs()
     local ours = ns.db and ns.db.vendorWaypoint
     if not ours or not (C_Map.HasUserWaypoint and C_Map.HasUserWaypoint()) then return false end
     local map, x, y = PinParts(C_Map.GetUserWaypoint())
-    return map == ours.map and type(x) == "number" and math.abs(x - ours.x) < 0.0001 and math.abs(y - ours.y) < 0.0001
+    -- A small allowance: the game may round a pin's position a little.
+    return map == ours.map and type(x) == "number" and math.abs(x - ours.x) < 0.002 and math.abs(y - ours.y) < 0.002
 end
 
 -- Removes the map pin, whoever placed it (/junkmate unpin, and a key
@@ -309,14 +310,24 @@ function ns.UpdateVendorWaypoint(count)
         if (count or 0) == 0 then db.vendorPinDismissed = nil end
         return
     end
-    if ours and ours.name == record.name and ours.map == record.map then return end
+    if ours and ours.name == record.name and (ours.vendorMap or ours.map) == record.map then return end
     if record.name == db.vendorPinDismissed then return end
     -- Your own pin stays where you put it.
     if not ours and C_Map.HasUserWaypoint and C_Map.HasUserWaypoint() then return end
     if C_Map.CanSetUserWaypointOnMap and not C_Map.CanSetUserWaypointOnMap(record.map) then return end
     C_Map.SetUserWaypoint(UiMapPoint.CreateFromCoordinates(record.map, record.x, record.y))
     if C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then C_SuperTrack.SetSuperTrackedUserWaypoint(true) end
-    db.vendorWaypoint = { name = record.name, map = record.map, x = record.x, y = record.y }
+    -- Remember where the game actually put it (it may round the position,
+    -- or file it under another map), so it's recognised as ours later.
+    local map, x, y = record.map, record.x, record.y
+    if C_Map.GetUserWaypoint then
+        local ok, point = pcall(C_Map.GetUserWaypoint)
+        local okParts, pMap, pX, pY = pcall(PinParts, point)
+        if ok and okParts and type(pMap) == "number" and type(pX) == "number" and type(pY) == "number" then
+            map, x, y = pMap, pX, pY
+        end
+    end
+    db.vendorWaypoint = { name = record.name, vendorMap = record.map, map = map, x = x, y = y }
 end
 
 -- The distance on the line, kept up to date while it shows.

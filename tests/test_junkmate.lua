@@ -1755,3 +1755,33 @@ do
     LOOTS = {}
 end
 
+-- The game rounds a pin's position: JunkMate's pin is still recognised and cleared.
+do
+    local function Item(id, count)
+        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1, isBound = true }
+    end
+    local set = C_Map.SetUserWaypoint
+    C_Map.SetUserWaypoint = function(point)
+        WAYPOINT = { point[1], math.floor(point[2] * 1000 + 0.5) / 1000, math.floor(point[3] * 1000 + 0.5) / 1000 }
+    end
+    PLAYER.map, PLAYER.x, PLAYER.y = 1, 0.5, 0.5
+    ns.db.vendors = { ["Odd Spot@1"] = { name = "Odd Spot", map = 1, x = 0.551234, y = 0.498765, faction = "Alliance" } }
+    ns.db.vendorWaypoint, ns.db.vendorPinDismissed, ns.db.vendorGuide = nil, nil, true
+    WAYPOINT = nil
+    local list = {}
+    for i = 1, 6 do list[i] = Item(9020) end
+    list[7] = Item(9001)
+    BAGS[0] = list
+    for i = 8, 16 do BAGS[0][i] = false end
+    for bag = 1, 4 do BAGS[bag] = {} end
+    ns.junkCount = nil
+    Fire("BAG_UPDATE_DELAYED")
+    check(WAYPOINT ~= nil, "(the vendor is pinned)")
+    ns.UpdateVendorHelp()
+    check(WAYPOINT ~= nil, "(and stays pinned while there's junk)")
+    BAGS[0][7] = Item(9020)   -- sold
+    Fire("BAG_UPDATE_DELAYED")
+    check(WAYPOINT == nil, "after selling, the pin is cleared even though the game rounded its position")
+    C_Map.SetUserWaypoint = set
+end
+
