@@ -50,7 +50,7 @@ local defaults = {
     -- remembered repairer on the worn-gear line (Repair.lua).
     repairTracking = true,
     repairGuide = true,
-    -- With junk to sell: the nearest remembered vendor on screen (Vendor.lua).
+    -- With junk to sell: name the nearest remembered vendor (Vendor.lua).
     vendorGuide = true,
 }
 

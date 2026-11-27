@@ -11,6 +11,7 @@ button:SetSize(31, 31)
 button:SetFrameStrata("MEDIUM")
 button:SetFrameLevel(8)
 button:RegisterForDrag("LeftButton")
+button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 button:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
 button:Hide()
 
@@ -111,7 +112,14 @@ end
 button:SetScript("OnDragStart", function(self) self:SetScript("OnUpdate", FollowCursor) end)
 button:SetScript("OnDragStop", function(self) self:SetScript("OnUpdate", nil) end)
 button:SetScript("OnHide", function(self) self:SetScript("OnUpdate", nil) end)
-button:SetScript("OnClick", function() ns.ToggleOptions() end)
+-- Left-click: the options. Right-click: a map pin on the nearest vendor.
+button:SetScript("OnClick", function(_, mouseButton)
+    if mouseButton == "RightButton" then
+        if ns.PinNearestVendor then pcall(ns.PinNearestVendor) end
+    else
+        ns.ToggleOptions()
+    end
+end)
 button:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
     GameTooltip:AddLine("JunkMate")
@@ -128,8 +136,13 @@ button:SetScript("OnEnter", function(self)
     if ns.junkCount and ns.junkCount > 0 then
         GameTooltip:AddLine(("Junk to sell: %d item%s (%s)"):format(ns.junkCount, ns.junkCount == 1 and "" or "s",
             ns.Money(ns.junkValue or 0)), 1, 0.82, 0.2)
+        local nearest = ns.NearestVendorText and ns.NearestVendorText()
+        if nearest then GameTooltip:AddLine(nearest, 1, 1, 1) end
     end
     GameTooltip:AddLine("Click: options, gear and bags", 1, 1, 1)
+    if ns.junkCount and ns.junkCount > 0 then
+        GameTooltip:AddLine("Right-click: map pin on the nearest vendor", 1, 1, 1)
+    end
     GameTooltip:AddLine("Drag: move this button", 0.7, 0.7, 0.7)
     GameTooltip:Show()
 end)

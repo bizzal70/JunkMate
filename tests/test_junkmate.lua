@@ -1314,18 +1314,16 @@ do
         ["Far Away@2"] = { name = "Far Away", map = 2, x = 0.5, y = 0.5, faction = "Alliance" },
         ["Horde Guy@1"] = { name = "Horde Guy", map = 1, x = 0.51, y = 0.5, faction = "Horde" },
     }
-    local notice = JunkMateVendorNotice
-    local label
-    for _, f in ipairs(Frames()) do
-        if rawget(f, "__text") == nil and f.SetTextColor and f ~= notice then end
+    check(JunkMateVendorNotice == nil, "there is no on-screen junk banner")
+    local button = JunkMateMinimapButton
+    local lines = {}
+    rawset(GameTooltip, "AddLine", function(_, t) lines[#lines + 1] = t end)
+    local function Hover()
+        lines = {}
+        button.__scripts.OnEnter(button)
+        return table.concat(lines, " | ")
     end
-    local function Text()
-        for _, f in ipairs(Frames()) do
-            if rawget(f, "__text") and f.__text:find("^Junk to sell: ") then label = f end
-        end
-        return label and label.__text or ""
-    end
-    -- Plenty of room, junk in the bags: shown all the same.
+    -- Junk in the bags: the coin, and the nearest vendor of your faction on this continent.
     local list = {}
     for i = 1, 6 do list[i] = Item(9020) end
     list[7] = Item(9001)
@@ -1333,41 +1331,30 @@ do
     for i = 8, 16 do BAGS[0][i] = false end
     for bag = 1, 4 do BAGS[bag] = {} end
     Fire("BAG_UPDATE_DELAYED")
-    check(notice:IsShown() and Text():find("Junk to sell: 1 item (5c)", 1, true), "junk to sell shows the vendor line, even with room in the bags: " .. Text())
-    check(ns.junkBadge:IsShown(), "and a coin shows on the minimap button")
-    -- No junk: nothing shown, full or not.
-    for i = 7, 14 do BAGS[0][i] = Item(9020) end
-    Fire("BAG_UPDATE_DELAYED")
-    check(not notice:IsShown() and not ns.junkBadge:IsShown(), "nothing to sell: no vendor line, and no coin on the minimap button")
-    -- Nearly full with junk: the nearest vendor of your faction on this continent.
-    BAGS[0][14] = Item(9001)
-    Fire("BAG_UPDATE_DELAYED")
-    check(notice:IsShown() and Text():find("Junk to sell: 1 item (5c)", 1, true)
-        and Text():find("Nearest vendor: Mike Miller, 120 yd", 1, true), "what the junk is worth and the nearest vendor: " .. Text())
+    check(ns.junkBadge:IsShown(), "junk to sell shows a coin on the minimap button")
+    check(Hover():find("Junk to sell: 1 item (5c) | Nearest vendor: Mike Miller, 120 yd", 1, true)
+        and Hover():find("Right-click: map pin on the nearest vendor", 1, true), "hovering the button says what it's worth and the nearest vendor: " .. Hover())
     WAYPOINT = nil
-    notice.__scripts.OnMouseUp(notice, "LeftButton")
-    check(WAYPOINT and math.abs(WAYPOINT[2] - 0.62) < 0.001, "click it for a map pin on the vendor")
-    -- Tooltip and target.
-    local lines = {}
-    rawset(GameTooltip, "AddLine", function(_, t) lines[#lines + 1] = t end)
+    button.__scripts.OnClick(button, "RightButton")
+    check(WAYPOINT and math.abs(WAYPOINT[2] - 0.62) < 0.001, "right-clicking the button pins the vendor")
+    -- No junk: no coin, nothing said.
+    BAGS[0][7] = Item(9020)
+    Fire("BAG_UPDATE_DELAYED")
+    check(not ns.junkBadge:IsShown() and not Hover():find("Junk to sell", 1, true), "nothing to sell: no coin")
+    BAGS[0][7] = Item(9001)
+    Fire("BAG_UPDATE_DELAYED")
+    -- Known vendors: tooltip and target.
     rawset(GameTooltip, "GetUnit", function() return "Mike Miller", "mouseover" end)
     UNITS.mouseover = { name = "Mike Miller" }
+    lines = {}
     ns.AddVendorLine(GameTooltip)
     check(lines[1] == "JunkMate: buys your junk (1 item, 5c)", "a known vendor's tooltip says they'll buy it: " .. tostring(lines[1]))
     UNITS.target = { name = "Mike Miller" }
     Fire("PLAYER_TARGET_CHANGED")
     check(PRINTED[#PRINTED] == "|cffd9a066JunkMate|r: Mike Miller buys junk: you have 1 item to sell (5c).", "targeting one says so: " .. PRINTED[#PRINTED])
-    -- At the vendor it goes away; with the option off it's never shown.
-    CAN_REPAIR, REPAIR_COST = false, 0
-    UNITS.npc = { name = "Mike Miller" }
-    Fire("MERCHANT_SHOW")
-    check(not notice:IsShown(), "at a vendor the line goes away")
-    AFTERS = {}
-    Fire("MERCHANT_CLOSED")
+    -- Option off: the coin stays, the vendor naming goes.
     ns.db.vendorGuide = false
-    Fire("BAG_UPDATE_DELAYED")
-    check(not notice:IsShown() and ns.junkBadge:IsShown(), "with the option off the line is never shown, but the coin still is")
+    check(ns.junkBadge:IsShown() and not Hover():find("Nearest vendor", 1, true), "with the option off the coin stays, but no vendor is named")
     ns.db.vendorGuide = true
-    CAN_REPAIR = true
     UNITS.npc, UNITS.mouseover, UNITS.target = nil, nil, nil
 end

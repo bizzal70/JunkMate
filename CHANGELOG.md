@@ -1,5 +1,9 @@
 # JunkMate
 
+## 0.14.2
+
+- **No more "Junk to sell" banner on screen:** the gold coin on the minimap button says it instead. Hover the button for what the junk is worth and the nearest vendor you've used; **right-click** it for a map pin on that vendor. Known vendors still say on their tooltip that they'll buy your junk.
+
 ## 0.14.1
 
 - **A gold coin on the minimap button** while you carry junk JunkMate would sell, in the bottom-right corner (the hammer for worn gear stays bottom-left, the bag count top-right). Hover the button to see how many items and what they're worth.
