@@ -25,6 +25,8 @@ It also **warns you when your bags are nearly full**. Down to your last 4 slots,
 
 > Destroy [Broken Fang] (worth 5c)? To make room for [Green Bracers].
 
+The window opens on the left of the screen, above the chat, so it never covers the middle; drag it wherever you like. During a fight it stays hidden and comes back once the fight is over.
+
 **Nothing is ever destroyed until you press Destroy.** Then the loot is picked up for you. Press **Not this one** to see the next choice, or **Keep always** so JunkMate never offers that item again.
 
 - **What it offers, in order:** grey items first, then food and drink you've outgrown, then gear that isn't an upgrade for your class (wrong armour type, or a lower item level than what you wear), cheapest first.

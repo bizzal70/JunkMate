@@ -272,6 +272,12 @@ SlashCmdList.JUNKMATE = function(msg)
         ns.RefreshOptions()
         return
     elseif command == "room" then
+        if (msg or ""):lower():find("reset", 1, true) then
+            ns.db.roomPoint = nil
+            ns.PlaceRoomWindow()
+            ns.Print("The make-room window is back in its place on the left.")
+            return
+        end
         ns.MakeRoomCommand()
         return
     elseif command == "bank" then
@@ -317,7 +323,7 @@ SlashCmdList.JUNKMATE = function(msg)
         ns.Print("/junkmate bags - warn when your bags are nearly full, on or off")
         ns.Print("/junkmate price - vendor prices on item tooltips, on or off")
         ns.Print("/junkmate button - show or hide the minimap button")
-        ns.Print("/junkmate room - offer the cheapest thing to destroy to free a slot")
+        ns.Print("/junkmate room - offer the cheapest thing to destroy to free a slot (room reset puts the window back)")
         ns.Print("/junkmate restack - put partial stacks together")
         ns.Print("/junkmate bank - tidy the open bank now")
         ns.Print("/junkmate keep - items never offered (keep clear to empty it)")

@@ -573,6 +573,30 @@ do
     room.destroy.__scripts.OnClick(room.destroy)
     check(#DELETED == 1, "if the item moved, it is not destroyed; the offer is looked at again")
 
+    -- Out of the way: not in the middle of the screen, and hidden in a fight.
+    check(room.__point[1] == "LEFT" and room.__point[3] == "LEFT", "the window sits on the left, not over the middle of the screen")
+    room.__scripts.OnDragStop(room)
+    check(ns.db.roomPoint ~= nil, "it can be dragged, and remembers where")
+    SlashCmdList.JUNKMATE("room reset")
+    check(ns.db.roomPoint == nil and room.__point[1] == "LEFT", "/junkmate room reset puts it back")
+    SlashCmdList.JUNKMATE("room")
+    check(room:IsShown(), "(shown again)")
+    Fire("PLAYER_REGEN_DISABLED")
+    check(not room:IsShown(), "a fight starting tucks it away")
+    room.__scripts.OnHide(room)
+    Fire("PLAYER_REGEN_ENABLED")
+    check(room:IsShown() and room.what:GetText() ~= nil, "and it comes back, still offering the same item, once the fight is over")
+    room.destroy.__scripts.OnClick(room.destroy)
+    check(#DELETED == 1, "with a fresh pause before a press counts")
+    room:Hide(); room.__scripts.OnHide(room)
+    Fire("PLAYER_REGEN_DISABLED")
+    local said = #PRINTED
+    SlashCmdList.JUNKMATE("room")
+    check(not room:IsShown() and PRINTED[#PRINTED]:find("once the fight is over", 1, true) ~= nil, "bags full in a fight: it waits, and says so")
+    Fire("PLAYER_REGEN_ENABLED")
+    check(room:IsShown(), "then offers after the fight")
+    room:Hide(); room.__scripts.OnHide(room)
+
     -- Controller buttons while it is open.
     local bound = {}
     SetOverrideBinding = function(_, _, key, command) bound[key] = command end

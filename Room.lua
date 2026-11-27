@@ -485,7 +485,19 @@ ns.destroyed = {}        -- this session's destroyed items, for /junkmate destro
 
 local window = CreateFrame("Frame", "JunkMateRoom", UIParent)
 window:SetSize(380, 156)
-window:SetPoint("TOP", UIParent, "TOP", 0, -150)
+-- Out of the middle of the screen: on the left, above the chat. Drag it
+-- anywhere; it remembers.
+local function PlaceWindow()
+    window:ClearAllPoints()
+    local saved = ns.db and ns.db.roomPoint
+    if type(saved) == "table" and saved[1] then
+        window:SetPoint(saved[1], UIParent, saved[2], saved[3], saved[4])
+    else
+        window:SetPoint("LEFT", UIParent, "LEFT", 30, 60)
+    end
+end
+ns.PlaceRoomWindow = PlaceWindow
+PlaceWindow()
 window:SetFrameStrata("DIALOG")
 window:SetToplevel(true)
 window:SetClampedToScreen(true)
@@ -493,7 +505,11 @@ window:EnableMouse(true)
 window:SetMovable(true)
 window:RegisterForDrag("LeftButton")
 window:SetScript("OnDragStart", window.StartMoving)
-window:SetScript("OnDragStop", window.StopMovingOrSizing)
+window:SetScript("OnDragStop", function(self)
+    self:StopMovingOrSizing()
+    local point, _, relativePoint, x, y = self:GetPoint()
+    if ns.db then ns.db.roomPoint = { point, relativePoint, x, y } end
+end)
 window:Hide()
 ns.Fill(window, 0.05, 0.05, 0.06, 0.97)
 ns.Outline(window, 0.7)
@@ -561,9 +577,20 @@ local hint = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
 hint:SetPoint("BOTTOMLEFT", 14, 11)
 hint:SetText("Controller: A destroy, X not this one, Y keep always, B close")
 
+-- Tucked away during a fight: the offer waits, hidden, and comes back
+-- once the fight is over.
+local tucked = false
+local inFight = false
 window:HookScript("OnHide", function()
+    if tucked then return end
     current = nil
     skipped = {}
+end)
+window:HookScript("OnShow", function()
+    if not window.placed then
+        PlaceWindow()
+        window.placed = true
+    end
 end)
 ns.CloseWithPadB(window, { PAD1 = "JunkMateRoomDestroy", PAD3 = "JunkMateRoomNext", PAD4 = "JunkMateRoomKeep" })
 
@@ -607,6 +634,14 @@ function ns.OfferRoom(loot, always)
         window.why:SetText("To free a bag slot.")
     end
     armedAt = GetTime() + ARM_SECONDS
+    if inFight then
+        if not tucked then
+            tucked = true
+            window:Hide()
+            ns.Print("Your bags are full. JunkMate will offer to make room once the fight is over.")
+        end
+        return true
+    end
     window:Show()
     return true
 end
@@ -728,13 +763,32 @@ events:SetScript("OnEvent", function(_, event, ...)
         end)
     elseif event == "LOOT_CLOSED" then
         said, ns.pendingLoot = false, nil
-        if current and current.loot then window:Hide() end
+        if current and current.loot then
+            tucked = false
+            window:Hide()
+            current, skipped = nil, {}
+        end
+    elseif event == "PLAYER_REGEN_DISABLED" then
+        inFight = true
+        if window:IsShown() then
+            tucked = true
+            window:Hide()
+        end
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        inFight = false
+        if tucked then
+            tucked = false
+            if current then
+                armedAt = GetTime() + ARM_SECONDS
+                window:Show()
+            end
+        end
     elseif event == "BAG_UPDATE_DELAYED" then
         local slot = ns.pendingLoot
         ns.pendingLoot = nil
         if slot and LootOpen() and LootSlot then pcall(LootSlot, slot) end
     end
 end)
-for _, event in ipairs({ "UI_ERROR_MESSAGE", "LOOT_CLOSED", "BAG_UPDATE_DELAYED" }) do
+for _, event in ipairs({ "UI_ERROR_MESSAGE", "LOOT_CLOSED", "BAG_UPDATE_DELAYED", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED" }) do
     pcall(events.RegisterEvent, events, event)
 end

@@ -1,5 +1,10 @@
 # JunkMate
 
+## 0.8.1
+
+- **The make-room window is out of your way:** it now opens on the left side of the screen, above the chat, instead of over the middle. Drag it anywhere and it stays there (`/junkmate room reset` puts it back).
+- **In a fight it tucks itself away,** and comes back with the same offer once the fight is over. If your bags fill up mid-fight, it says so in chat and waits until the fight ends.
+
 ## 0.8.0
 
 - **Tidies the bank.** When you open your bank, JunkMate puts its partial stacks together, then tops up the bank's partial stacks of crafting materials from your bags. For example, with 15 Linen Cloth in the bank and 7 in your bags, 5 go in to make 20 and 2 stay with you.
