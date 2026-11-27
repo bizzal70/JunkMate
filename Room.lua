@@ -828,7 +828,8 @@ function ns.OfferRoom(loot, always)
     window.icon.texture:SetTexture(pick.icon or "Interface\\Icons\\INV_Misc_QuestionMark")
     window.what:SetText(("Destroy %s%s (worth %s)?"):format(pick.link, Amount(pick), pick.value > 0 and ns.Money(pick.value) or "nothing"))
     if loot then
-        window.why:SetText(("To make room for %s%s."):format(loot.link, loot.count > 1 and (" x%d"):format(loot.count) or ""))
+        window.why:SetText(("To make room for %s%s%s."):format(loot.link, loot.count > 1 and (" x%d"):format(loot.count) or "",
+            loot.value > 0 and (" (worth %s)"):format(ns.Money(loot.value)) or ""))
     else
         window.why:SetText("To free a bag slot.")
     end

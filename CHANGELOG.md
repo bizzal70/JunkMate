@@ -1,5 +1,9 @@
 # JunkMate
 
+## 0.9.2
+
+- The make-room window now shows what the loot is worth too, so you can compare at a glance: *"Destroy Patchwork Bracers (worth 14c)? To make room for Chunk of Boar Meat x2 (worth 8c)."* Quest items and other loot vendors won't buy show no price.
+
 ## 0.9.1
 
 - **Several items that won't fit:** after JunkMate makes room for one item and loots it, it now looks at what's still on the corpse and offers again for the next item, instead of stopping after the first. If what's left isn't worth destroying anything for (a grey worth less than the cheapest thing JunkMate would throw away), chat says so once.

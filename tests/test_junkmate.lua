@@ -935,6 +935,7 @@ do
     local looted = #LOOTED
     Fire("BAG_UPDATE_DELAYED")
     RunAfters()
+    check(room.why:GetText() == "To make room for item:9042 (worth 6c).", "the offer says what the loot is worth: " .. tostring(room.why:GetText()))
     check(LOOTED[looted + 1] == 1 and room:IsShown() and room.why:GetText():find("item:9042", 1, true),
         "after the meat is looted, the tusk left on the corpse gets its own offer: " .. tostring(room.why:GetText()))
     room:Hide(); room.__scripts.OnHide(room)
