@@ -78,11 +78,13 @@ background:SetColorTexture(0, 0, 0, 0.55)
 
 local text = notice:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 text:SetPoint("CENTER")
+ns.durabilityNotice = notice
 
 -- Passes the gear's condition on to the minimap button's "!" and the
 -- options window.
 function ns.ShowWorn()
     if ns.UpdateMinimapButton then ns.UpdateMinimapButton() end
+    if ns.UpdateRepairHelp then pcall(ns.UpdateRepairHelp) end
     if ns.RefreshOptions then ns.RefreshOptions() end
 end
 
@@ -102,7 +104,11 @@ function ns.UpdateDurability()
     local percent = math.floor(lowest + 0.5)
     ns.worn = percent
     ns.ShowWorn()
-    text:SetText(("Gear worn: %d%% left"):format(percent))
+    -- The nearest repairer JunkMate knows, if any (Repair.lua).
+    local okHint, hint = pcall(function() return ns.NearestRepairText and ns.NearestRepairText() end)
+    hint = okHint and hint or nil
+    text:SetText(("Gear worn: %d%% left"):format(percent) .. (hint and ("  |cffffffff" .. hint .. " (click for a map pin)|r") or ""))
+    notice:SetWidth(math.max(260, (tonumber(text:GetStringWidth() or 0) or 0) + 30))
     -- Orange while there is some way to go, red when it is about to break.
     if percent <= 10 then
         text:SetTextColor(1, 0.25, 0.25)
@@ -112,7 +118,8 @@ function ns.UpdateDurability()
     notice:Show()
     if not warned then
         warned = true
-        ns.Print(("Your most worn piece of gear is down to %d%%. Time to find a vendor who repairs."):format(percent))
+        ns.Print(("Your most worn piece of gear is down to %d%%. Time to find a vendor who repairs.%s"):format(percent,
+            hint and (" " .. hint .. ".") or ""))
     end
 end
 

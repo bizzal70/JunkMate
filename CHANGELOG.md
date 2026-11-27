@@ -1,5 +1,14 @@
 # JunkMate
 
+## 0.13.0
+
+Finding a repairer while your gear is worn:
+
+- **Minimap repair tracking:** while your gear is worn, JunkMate switches on the minimap's own "Repair" tracking (where the game has it), so repairers show on the minimap, and switches it off again once you've repaired. If you had it on yourself, it's left on.
+- **The nearest repairer you've used:** JunkMate remembers every vendor who repairs when you open their shop. While your gear is worn, the worn-gear line names the nearest one, with the distance kept up to date as you move: *"Gear worn: 20% left  Nearest repair: William MacGregor, 180 yd"*. Click the line for a map pin and the arrow to them (drag it to move it, as before). `/junkmate repairer` does the same.
+- **Known repairers say so:** their tooltip says *"JunkMate: repairs here"* (with your gear's condition while it's worn), and targeting one while your gear is worn says so in chat.
+- The game doesn't tell addons which NPCs repair, so the last two only know repairers you've opened a shop with. Both can be switched off in the options.
+
 ## 0.12.0
 
 - **The make-room window says why it picked that item,** and what would go next. JunkMate offers grey items first, then food and drink you have outgrown, then gear that is no upgrade, cheapest first; now it says so for the item on offer:

@@ -79,7 +79,7 @@ end
 
 local function CreateWindow()
     window = CreateFrame("Frame", addonName .. "Options", UIParent)
-    window:SetSize(328, 588)
+    window:SetSize(328, 644)
     window:SetPoint("CENTER")
     window:SetFrameStrata("HIGH")
     window:SetToplevel(true)
@@ -209,6 +209,17 @@ local function CreateWindow()
         function() return "Open clams and the like as bags fill" end,
         function() return ns.db.openContainers end,
         function() ns.db.openContainers = not ns.db.openContainers end)
+    CreateRow(window, -548, true,
+        function() return "Track repairers on the minimap when worn" end,
+        function() return ns.db.repairTracking end,
+        function()
+            ns.db.repairTracking = not ns.db.repairTracking
+            if ns.UpdateRepairTracking then pcall(ns.UpdateRepairTracking) end
+        end)
+    CreateRow(window, -576, true,
+        function() return "Point to the nearest repairer when worn" end,
+        function() return ns.db.repairGuide end,
+        function() ns.db.repairGuide = not ns.db.repairGuide end)
 
     local hint = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("BOTTOMLEFT", 16, 12)

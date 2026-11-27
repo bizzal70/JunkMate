@@ -153,7 +153,7 @@ Fire("UPDATE_INVENTORY_DURABILITY")
 for _, f in ipairs(Frames()) do
     if rawget(f, "__text") and f.__text:find("Gear worn", 1, true) then label = f end
 end
-check(notice.__shown and label.__text == "Gear worn: 18% left", "the most worn piece dropping below the level shows a line on screen")
+check(notice.__shown and label.__text == "Gear worn: 18% left", "the most worn piece dropping below the level shows a line on screen ")
 check(#PRINTED == printedBefore + 1 and PRINTED[#PRINTED]:find("down to 18%", 1, true) ~= nil, "and says so once in chat")
 check(ns.worn == 18 and ns.wornBadge.__shown and not ns.bagBadge.__shown and JunkMateMinimapButton.__shown, "and puts the hammer on the minimap button, not the bag sign")
 check(ns.GearStatus():find("Gear worn: 18% left on [Chestguard]", 1, true) ~= nil, "the options say which piece is worn: " .. ns.GearStatus())
@@ -232,7 +232,7 @@ local rows = {}
 for _, f in ipairs(Frames()) do
     if rawget(f, "Refresh") and f.__scripts.OnClick then rows[#rows + 1] = f end
 end
-check(#rows == 15, "the options have fifteen controls")
+check(#rows == 17, "the options have seventeen controls")
 local statusLine
 for _, f in ipairs(Frames()) do
     if rawget(f, "__text") and f.__text:find("^Gear") then statusLine = f end
@@ -1217,4 +1217,83 @@ do
     check(Reason():find("your class can't use mail", 1, true) and not Reason():find("Next in line", 1, true),
         "gear the class can't use says why, and the last one has nothing next: " .. Reason())
     room:Hide(); room.__scripts.OnHide(room)
+end
+
+-- Finding a repairer while gear is worn (Repair.lua).
+do
+    local notice = JunkMateDurabilityNotice
+    GEAR = {}
+    Fire("UPDATE_INVENTORY_DURABILITY")
+    -- The minimap's tracking menu.
+    local TRACK = { false, false }
+    C_Minimap.GetNumTrackingTypes = function() return 2 end
+    C_Minimap.GetTrackingInfo = function(i) return { name = i == 2 and "Repair" or "Find Herbs", active = TRACK[i] } end
+    C_Minimap.SetTracking = function(i, on) TRACK[i] = on end
+
+    -- Opening a repairer's shop remembers them.
+    UNITS.npc = { name = "William MacGregor" }
+    local player = PLAYER
+    player.map, player.x, player.y = 1, 0.5, 0.5
+    CAN_REPAIR, REPAIR_COST = true, 0
+    Fire("MERCHANT_SHOW"); AFTERS = {}; Fire("MERCHANT_CLOSED")
+    check(ns.db.repairers and ns.db.repairers["William MacGregor@1"], "opening a repairer's shop remembers them")
+    UNITS.npc = { name = "Mike Miller" }
+    CAN_REPAIR = false
+    Fire("MERCHANT_SHOW"); AFTERS = {}; Fire("MERCHANT_CLOSED")
+    check(not ns.db.repairers["Mike Miller@1"], "a vendor who doesn't repair is not")
+    CAN_REPAIR = true
+
+    -- Gear wears out, 180 yards away.
+    player.x = 0.68
+    GEAR[5] = { 18, 100 }
+    Fire("UPDATE_INVENTORY_DURABILITY")
+    local label
+    for _, f in ipairs(Frames()) do
+        if rawget(f, "__text") and f.__text:find("^Gear worn") then label = f end
+    end
+    check(label and label.__text:find("Nearest repair: William MacGregor, 180 yd", 1, true), "the worn-gear line names the nearest repairer: " .. tostring(label and label.__text))
+    check(PRINTED[#PRINTED]:find("Nearest repair: William MacGregor, 180 yd.", 1, true), "and so does the chat line")
+    check(TRACK[2] == true and TRACK[1] == false, "the minimap's repair tracking is switched on")
+    notice.__scripts.OnMouseUp(notice, "LeftButton")   -- ends an earlier test's drag
+    WAYPOINT, SUPERTRACKED = nil, false
+    notice.__scripts.OnMouseUp(notice, "LeftButton")
+    check(WAYPOINT and WAYPOINT[1] == 1 and math.abs(WAYPOINT[2] - 0.5) < 0.001 and SUPERTRACKED, "clicking the line puts a map pin on them")
+    notice.__scripts.OnDragStart(notice); notice.__scripts.OnDragStop(notice)
+    WAYPOINT = nil
+    notice.__scripts.OnMouseUp(notice, "LeftButton")
+    check(WAYPOINT == nil, "dragging the line moves it, without a pin")
+
+    -- On their tooltip, and when targeted.
+    local lines = {}
+    rawset(GameTooltip, "AddLine", function(_, text) lines[#lines + 1] = text end)
+    rawset(GameTooltip, "GetUnit", function() return "William MacGregor", "mouseover" end)
+    UNITS.mouseover = { name = "William MacGregor" }
+    ns.AddRepairLine(GameTooltip)
+    check(lines[1] == "JunkMate: repairs here. Your gear is at 18%.", "a known repairer's tooltip says so: " .. tostring(lines[1]))
+    UNITS.target = { name = "William MacGregor" }
+    local said = #PRINTED
+    Fire("PLAYER_TARGET_CHANGED")
+    check(PRINTED[#PRINTED] == "|cffd9a066JunkMate|r: William MacGregor repairs, and your gear is at 18%.", "targeting them while worn says so")
+    Fire("PLAYER_TARGET_CHANGED")
+    check(#PRINTED == said + 1, "once, not every time")
+
+    -- Repaired: tracking back off, since JunkMate turned it on.
+    GEAR[5] = { 100, 100 }
+    Fire("UPDATE_INVENTORY_DURABILITY")
+    check(TRACK[2] == false, "once repaired, the tracking JunkMate turned on goes off again")
+    lines = {}
+    ns.AddRepairLine(GameTooltip)
+    check(lines[1] == "JunkMate: repairs here", "the tooltip still says they repair")
+    -- Tracking the player turned on themselves stays on.
+    TRACK[2] = true
+    GEAR[5] = { 10, 100 }
+    Fire("UPDATE_INVENTORY_DURABILITY")
+    GEAR[5] = { 100, 100 }
+    Fire("UPDATE_INVENTORY_DURABILITY")
+    check(TRACK[2] == true, "repair tracking you turned on yourself is left on")
+    SlashCmdList.JUNKMATE("repairer")
+    check(PRINTED[#PRINTED - 1]:find("JunkMate knows 1 repairer.", 1, true), "/junkmate repairer says how many it knows: " .. PRINTED[#PRINTED - 1])
+    GEAR = {}
+    Fire("UPDATE_INVENTORY_DURABILITY")
+    UNITS.npc, UNITS.mouseover, UNITS.target = nil, nil, nil
 end

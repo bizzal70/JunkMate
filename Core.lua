@@ -46,6 +46,10 @@ local defaults = {
     -- Open clams and other "Right Click to Open" items when the bags get
     -- nearly full (Open.lua).
     openContainers = true,
+    -- While gear is worn: the minimap's repair tracking on, and the nearest
+    -- remembered repairer on the worn-gear line (Repair.lua).
+    repairTracking = true,
+    repairGuide = true,
 }
 
 -- Names in the game's Key Bindings window (Bindings.xml).
@@ -307,6 +311,13 @@ SlashCmdList.JUNKMATE = function(msg)
     elseif command == "open" then
         ns.OpenContainers(true)
         return
+    elseif command == "repairer" or command == "repairers" then
+        local count = 0
+        for _ in pairs(ns.db.repairers or {}) do count = count + 1 end
+        local text = ns.NearestRepairText and ns.NearestRepairText()
+        ns.Print(("JunkMate knows %d repairer%s.%s"):format(count, count == 1 and "" or "s", text and (" " .. text .. ".") or ""))
+        if text then ns.PinNearestRepairer() end
+        return
     elseif command == "destroyed" then
         if #ns.destroyed == 0 then
             ns.Print("Nothing destroyed this session.")
@@ -348,6 +359,7 @@ SlashCmdList.JUNKMATE = function(msg)
         ns.Print("/junkmate room - offer the cheapest thing to destroy to free a slot (room reset puts the window back)")
         ns.Print("/junkmate restack - put partial stacks together")
         ns.Print("/junkmate open - open clams and other things that open")
+        ns.Print("/junkmate repairer - the nearest repairer you've used, with a map pin")
         ns.Print("/junkmate bank - tidy the open bank now")
         ns.Print("/junkmate keep - items never offered (keep clear to empty it)")
         ns.Print("/junkmate destroyed - what was destroyed this session")
