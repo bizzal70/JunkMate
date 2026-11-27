@@ -57,6 +57,9 @@ local defaults = {
     -- The junk line on screen (Vendor.lua): off unless switched on; the
     -- coin on the minimap button shows junk either way.
     junkBanner = false,
+    -- While carrying junk: vendors on the minimap (tracking, and a coin on
+    -- each vendor JunkMate knows) (Vendor.lua, Repair.lua).
+    vendorMinimap = true,
 }
 
 -- Names in the game's Key Bindings window (Bindings.xml).

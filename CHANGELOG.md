@@ -1,5 +1,12 @@
 # JunkMate
 
+## 0.16.0
+
+- **Vendors on the minimap, only while you have junk to sell:**
+  - JunkMate switches on the minimap's own vendor tracking (Food & Drink, Reagents and Repair, whichever the game has), so vendors nearby show even if you've never used them, and switches it off again once there's nothing left to sell. Tracking you switched on yourself is left alone.
+  - Every vendor you've used gets a gold coin on the minimap while it's in view. Hover a coin for who it is and what they'd pay for your junk.
+- Switch it off in the options: "Show vendors on the minimap when you have junk", under *At a vendor*.
+
 ## 0.15.1
 
 - **The junk-to-sell line on screen is back, as an option** (off unless you switch it on): "Show the junk-to-sell line on screen" under *At a vendor*, or `/junkmate junkbanner`. It says what your junk is worth and names the nearest vendor; click it for a map pin, drag it to move it, and `/junkmate junkbanner reset` puts it back. The coin on the minimap button shows junk either way.

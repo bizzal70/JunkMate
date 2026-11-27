@@ -27,6 +27,59 @@ end
 -- 1. Minimap tracking
 ----------------------------------------------------------------------------
 
+local function Lower(text, fallback)
+    return (type(text) == "string" and text or fallback):lower()
+end
+local TRACK_REPAIR = Lower(MINIMAP_TRACKING_REPAIR, "Repair")
+-- The kinds of vendor the minimap can track; any of them buys junk.
+local TRACK_VENDORS = { TRACK_REPAIR, Lower(MINIMAP_TRACKING_VENDOR_FOOD, "Food & Drink"),
+    Lower(MINIMAP_TRACKING_VENDOR_REAGENT, "Reagents") }
+
+-- Every kind of minimap tracking: { index, name (lower case), active }.
+local function TrackingKinds()
+    local kinds = {}
+    local minimap = C_Minimap
+    if not (minimap and minimap.GetNumTrackingTypes and minimap.GetTrackingInfo and minimap.SetTracking) then return kinds end
+    local ok, count = pcall(minimap.GetNumTrackingTypes)
+    for index = 1, ok and Number(count) or 0 do
+        local found, a, _, c = pcall(minimap.GetTrackingInfo, index)
+        if found then
+            local name, active
+            if type(a) == "table" then name, active = a.name, a.active else name, active = a, c end
+            if Usable(name) and type(name) == "string" then
+                kinds[#kinds + 1] = { index = index, name = name:lower(), active = active and true or false }
+            end
+        end
+    end
+    return kinds
+end
+
+-- Switches the minimap's tracking to match: repairers while gear is worn,
+-- vendors (food and drink, reagents, repair) while you carry junk to sell.
+-- JunkMate only ever switches off what it switched on itself.
+function ns.UpdateTracking()
+    local db = ns.db
+    if not db then return end
+    db.trackedByUs = db.trackedByUs or {}
+    if db.trackingOnByUs then
+        db.trackedByUs[TRACK_REPAIR], db.trackingOnByUs = true, nil
+    end
+    local want = {}
+    if ns.worn and db.repairTracking then want[TRACK_REPAIR] = true end
+    if db.vendorMinimap and (ns.junkCount or 0) > 0 then
+        for _, name in ipairs(TRACK_VENDORS) do want[name] = true end
+    end
+    for _, kind in ipairs(TrackingKinds()) do
+        if want[kind.name] and not kind.active then
+            pcall(C_Minimap.SetTracking, kind.index, true)
+            db.trackedByUs[kind.name] = true
+        elseif not want[kind.name] and kind.active and db.trackedByUs[kind.name] then
+            pcall(C_Minimap.SetTracking, kind.index, false)
+            db.trackedByUs[kind.name] = nil
+        end
+    end
+end
+
 -- The minimap's "Repair" tracking: its index and whether it is on.
 local function RepairTracking()
     local minimap = C_Minimap
@@ -45,17 +98,7 @@ end
 ns.RepairTracking = RepairTracking
 
 function ns.UpdateRepairTracking()
-    local db = ns.db
-    if not db then return end
-    local index, active = RepairTracking()
-    if not index then return end
-    if ns.worn and db.repairTracking and not active then
-        pcall(C_Minimap.SetTracking, index, true)
-        db.trackingOnByUs = true
-    elseif (not ns.worn or not db.repairTracking) and active and db.trackingOnByUs then
-        pcall(C_Minimap.SetTracking, index, false)
-        db.trackingOnByUs = nil
-    end
+    ns.UpdateTracking()
 end
 
 ----------------------------------------------------------------------------

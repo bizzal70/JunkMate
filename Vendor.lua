@@ -118,15 +118,118 @@ local function UpdateBanner(count, value)
     notice:Show()
 end
 
--- Counts the junk for the coin on the minimap button, and the line on
--- screen if that is switched on.
+----------------------------------------------------------------------------
+-- Vendors on the minimap while you carry junk (db.vendorMinimap): a gold
+-- coin on each vendor you've used in this zone, within the minimap's view.
+----------------------------------------------------------------------------
+
+local PIN_SIZE = 14
+local EDGE_INSET = 5
+local holder = CreateFrame("Frame", nil, Minimap)
+holder:SetAllPoints(Minimap)
+holder:SetFrameLevel(((Minimap.GetFrameLevel and Minimap:GetFrameLevel()) or 1) + 6)
+local pins = {}
+ns.vendorPins = pins
+
+local function AcquirePin(index)
+    local pin = pins[index]
+    if pin then return pin end
+    pin = CreateFrame("Frame", nil, holder)
+    pin:SetSize(PIN_SIZE, PIN_SIZE)
+    pin.texture = pin:CreateTexture(nil, "ARTWORK")
+    pin.texture:SetAllPoints()
+    pin.texture:SetTexture("Interface\\MoneyFrame\\UI-GoldIcon")
+    pin:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+        GameTooltip:AddLine(self.vendorName or "Vendor", 1, 1, 1)
+        GameTooltip:AddLine(("Buys your junk: %d item%s (%s)"):format(ns.junkCount or 0, (ns.junkCount or 0) == 1 and "" or "s",
+            ns.Money(ns.junkValue or 0)), 1, 0.82, 0.2)
+        GameTooltip:Show()
+    end)
+    pin:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    -- Hover only, so clicks still reach the minimap underneath.
+    if pin.SetMouseClickEnabled then pin:SetMouseClickEnabled(false) end
+    pins[index] = pin
+    return pin
+end
+
+-- How many yards the minimap shows from its centre to its edge.
+local function ViewRadius()
+    if C_Minimap and C_Minimap.GetViewRadius then
+        local radius = C_Minimap.GetViewRadius()
+        if type(radius) == "number" and radius > 0 then return radius end
+    end
+    return 233
+end
+
+-- With a rotating minimap, up is the way the player faces: the turn's
+-- sine and cosine (0 and 1 when fixed).
+local function Rotation()
+    local getCVar = (C_CVar and C_CVar.GetCVar) or GetCVar
+    if getCVar and getCVar("rotateMinimap") == "1" and GetPlayerFacing then
+        local facing = GetPlayerFacing()
+        if type(facing) == "number" then return math.sin(facing), math.cos(facing) end
+    end
+    return 0, 1
+end
+
+function ns.UpdateVendorPins()
+    local used = 0
+    local db = ns.db
+    if db and db.vendorMinimap and (ns.junkCount or 0) > 0 and db.vendors
+            and C_Map and C_Map.GetBestMapForUnit and C_Map.GetMapWorldSize then
+        local mapID = C_Map.GetBestMapForUnit("player")
+        local ok, pos = pcall(C_Map.GetPlayerMapPosition, mapID, "player")
+        local width, height = C_Map.GetMapWorldSize(mapID)
+        if mapID and ok and pos and type(width) == "number" and type(height) == "number" then
+            local px, py = pos:GetXY()
+            local halfWidth = Minimap:GetWidth() / 2
+            local pixelsPerYard = halfWidth / ViewRadius()
+            local edge = halfWidth - EDGE_INSET
+            local sinF, cosF = Rotation()
+            local faction = UnitFactionGroup and UnitFactionGroup("player")
+            for _, record in pairs(db.vendors) do
+                if record.map == mapID and (not record.faction or record.faction == faction) then
+                    local east, north = (record.x - px) * width, -(record.y - py) * height
+                    local x = (east * cosF + north * sinF) * pixelsPerYard
+                    local y = (north * cosF - east * sinF) * pixelsPerYard
+                    if math.sqrt(x * x + y * y) <= edge then
+                        used = used + 1
+                        local pin = AcquirePin(used)
+                        pin.vendorName = record.name
+                        pin:ClearAllPoints()
+                        pin:SetPoint("CENTER", Minimap, "CENTER", x, y)
+                        pin:Show()
+                    end
+                end
+            end
+        end
+    end
+    for index = used + 1, #pins do pins[index]:Hide() end
+end
+
+-- Kept in place as you move, only while there is junk to show them for.
+local elapsedSince = 0
+local function FollowPlayer(_, elapsed)
+    elapsedSince = elapsedSince + (elapsed or 0)
+    if elapsedSince < 0.1 then return end
+    elapsedSince = 0
+    pcall(ns.UpdateVendorPins)
+end
+
+-- Counts the junk for the coin on the minimap button, the vendors on the
+-- minimap, and the line on screen if that is switched on.
 function ns.UpdateVendorHelp()
     if not ns.db then return end
     local count, value = ns.JunkToSell()
     if ns.junkCount ~= count or ns.junkValue ~= value then
         ns.junkCount, ns.junkValue = count, value
         if ns.UpdateMinimapButton then pcall(ns.UpdateMinimapButton) end
+        if ns.UpdateTracking then pcall(ns.UpdateTracking) end
     end
+    local showPins = ns.db.vendorMinimap and count > 0
+    holder:SetScript("OnUpdate", showPins and FollowPlayer or nil)
+    pcall(ns.UpdateVendorPins)
     UpdateBanner(count, value)
 end
 

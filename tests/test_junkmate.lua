@@ -232,7 +232,7 @@ local rows = {}
 for _, f in ipairs(Frames()) do
     if rawget(f, "Refresh") and f.__scripts.OnClick then rows[#rows + 1] = f end
 end
-check(#rows == 20, "the options have twenty controls")
+check(#rows == 21, "the options have twenty-one controls")
 local statusLine
 for _, f in ipairs(Frames()) do
     if rawget(f, "__text") and f.__text:find("^Gear") then statusLine = f end
@@ -1223,6 +1223,7 @@ end
 do
     local notice = JunkMateDurabilityNotice
     ns.db.vendorGuide = false   -- this block is about repairers only
+    ns.db.vendorMinimap = false
     GEAR = {}
     Fire("UPDATE_INVENTORY_DURABILITY")
     -- The minimap's tracking menu.
@@ -1298,6 +1299,7 @@ do
     Fire("UPDATE_INVENTORY_DURABILITY")
     UNITS.npc, UNITS.mouseover, UNITS.target = nil, nil, nil
     ns.db.vendorGuide = true
+    ns.db.vendorMinimap = true
 end
 
 -- Finding a vendor whenever there is junk to sell (Vendor.lua).
@@ -1410,5 +1412,57 @@ do
     check(not notice:IsShown(), "nothing to sell: it goes away")
     SlashCmdList.JUNKMATE("junkbanner")
     check(not ns.db.junkBanner, "and /junkmate junkbanner switches it off again")
+end
+
+-- Vendors on the minimap while carrying junk.
+do
+    local function Item(id, count)
+        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1, isBound = true }
+    end
+    local player = PLAYER
+    player.map, player.x, player.y, player.facing = 1, 0.5, 0.5, 0
+    ns.db.vendors = {
+        ["Christopher Hewen@1"] = { name = "Christopher Hewen", map = 1, x = 0.55, y = 0.5, faction = "Alliance" },
+        ["Far Off@1"] = { name = "Far Off", map = 1, x = 0.9, y = 0.5, faction = "Alliance" },
+        ["Other Zone@2"] = { name = "Other Zone", map = 2, x = 0.5, y = 0.5, faction = "Alliance" },
+    }
+    local TRACK = { false, false, false, false }
+    local NAMES = { "Find Herbs", "Food & Drink", "Reagents", "Repair" }
+    C_Minimap.GetNumTrackingTypes = function() return 4 end
+    C_Minimap.GetTrackingInfo = function(i) return { name = NAMES[i], active = TRACK[i] } end
+    C_Minimap.SetTracking = function(i, on) TRACK[i] = on end
+    ns.db.trackedByUs = {}
+    local list = {}
+    for i = 1, 6 do list[i] = Item(9020) end
+    list[7] = Item(9001)
+    BAGS[0] = list
+    for i = 8, 16 do BAGS[0][i] = false end
+    for bag = 1, 4 do BAGS[bag] = {} end
+    ns.junkCount = nil
+    Fire("BAG_UPDATE_DELAYED")
+    check(TRACK[2] and TRACK[3] and TRACK[4] and not TRACK[1], "with junk to sell, the minimap tracks food and drink, reagent and repair vendors")
+    local shown = {}
+    for _, pin in ipairs(ns.vendorPins) do if pin:IsShown() then shown[#shown + 1] = pin end end
+    check(#shown == 1 and shown[1].vendorName == "Christopher Hewen" and math.abs(shown[1].__point[4] - 35) < 0.01 and math.abs(shown[1].__point[5]) < 0.01,
+        "a known vendor in view gets a coin on the minimap, 50 yd east: " .. tostring(shown[1] and shown[1].__point[4]))
+    -- Nothing left to sell: the tracking JunkMate switched on goes off, the coins go.
+    BAGS[0][7] = Item(9020)
+    Fire("BAG_UPDATE_DELAYED")
+    shown = 0
+    for _, pin in ipairs(ns.vendorPins) do if pin:IsShown() then shown = shown + 1 end end
+    check(not TRACK[2] and not TRACK[3] and not TRACK[4] and shown == 0, "nothing left to sell: the tracking goes off, and the coins go")
+    -- Tracking you switched on yourself is left alone.
+    TRACK[2] = true
+    BAGS[0][7] = Item(9001); Fire("BAG_UPDATE_DELAYED")
+    BAGS[0][7] = Item(9020); Fire("BAG_UPDATE_DELAYED")
+    check(TRACK[2] == true, "food and drink tracking you switched on yourself stays on")
+    -- The option off: no tracking, no coins.
+    TRACK[2] = false
+    ns.db.vendorMinimap = false
+    BAGS[0][7] = Item(9001); Fire("BAG_UPDATE_DELAYED")
+    shown = 0
+    for _, pin in ipairs(ns.vendorPins) do if pin:IsShown() then shown = shown + 1 end end
+    check(not TRACK[3] and shown == 0, "with the option off, nothing on the minimap")
+    ns.db.vendorMinimap = true
 end
 

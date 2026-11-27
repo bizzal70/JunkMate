@@ -79,7 +79,7 @@ end
 
 local function CreateWindow()
     window = CreateFrame("Frame", addonName .. "Options", UIParent)
-    window:SetSize(652, 484)
+    window:SetSize(652, 512)
     window:SetPoint("CENTER")
     window:SetFrameStrata("HIGH")
     window:SetToplevel(true)
@@ -244,6 +244,15 @@ local function CreateWindow()
             if ns.UpdateVendorHelp then pcall(ns.UpdateVendorHelp) end
         end)
 
+    CreateRow(window, 0, true,
+        function() return "Show vendors on the minimap when you have junk" end,
+        function() return ns.db.vendorMinimap end,
+        function()
+            ns.db.vendorMinimap = not ns.db.vendorMinimap
+            if ns.UpdateTracking then pcall(ns.UpdateTracking) end
+            if ns.UpdateVendorHelp then pcall(ns.UpdateVendorHelp) end
+        end)
+
     -- Two columns under headings. The rows were made in the order above
     -- (which /junkmate and the tests rely on); here is where each one goes.
     local LEFT, RIGHT = 14, 338
@@ -254,7 +263,7 @@ local function CreateWindow()
         heading:SetTextColor(ACCENT_R, ACCENT_G, ACCENT_B)
     end
     Heading("At a vendor", LEFT, -88)
-    Heading("Worn gear", LEFT, -286)
+    Heading("Worn gear", LEFT, -314)
     Heading("Bags", RIGHT, -88)
     Heading("Tooltips and minimap", RIGHT, -288)
     local PLACES = {
@@ -264,11 +273,12 @@ local function CreateWindow()
         [3] = { LEFT, -192 },   -- say in chat
         [18] = { LEFT, -220 },  -- name the nearest vendor
         [20] = { LEFT, -248 },  -- the junk line on screen
-        [4] = { LEFT, -306 },   -- warn when gear is wearing out
-        [19] = { LEFT, -334 },  -- the worn-gear line on screen
-        [5] = { LEFT, -364 },   -- warn below N%
-        [16] = { LEFT, -394 },  -- track repairers on the minimap
-        [17] = { LEFT, -422 },  -- point to the nearest repairer
+        [21] = { LEFT, -276 },  -- vendors on the minimap
+        [4] = { LEFT, -334 },   -- warn when gear is wearing out
+        [19] = { LEFT, -362 },  -- the worn-gear line on screen
+        [5] = { LEFT, -392 },   -- warn below N%
+        [16] = { LEFT, -422 },  -- track repairers on the minimap
+        [17] = { LEFT, -450 },  -- point to the nearest repairer
         [6] = { RIGHT, -108 },  -- warn when bags are nearly full
         [7] = { RIGHT, -136 },  -- warn at N free slots
         [10] = { RIGHT, -166 }, -- make room when loot won't fit
