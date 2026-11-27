@@ -232,7 +232,7 @@ local rows = {}
 for _, f in ipairs(Frames()) do
     if rawget(f, "Refresh") and f.__scripts.OnClick then rows[#rows + 1] = f end
 end
-check(#rows == 19, "the options have nineteen controls")
+check(#rows == 20, "the options have twenty controls")
 local statusLine
 for _, f in ipairs(Frames()) do
     if rawget(f, "__text") and f.__text:find("^Gear") then statusLine = f end
@@ -1314,7 +1314,7 @@ do
         ["Far Away@2"] = { name = "Far Away", map = 2, x = 0.5, y = 0.5, faction = "Alliance" },
         ["Horde Guy@1"] = { name = "Horde Guy", map = 1, x = 0.51, y = 0.5, faction = "Horde" },
     }
-    check(JunkMateVendorNotice == nil, "there is no on-screen junk banner")
+    check(not ns.db.junkBanner and not JunkMateJunkNotice:IsShown(), "the junk line on screen starts off")
     local button = JunkMateMinimapButton
     local lines = {}
     rawset(GameTooltip, "AddLine", function(_, t) lines[#lines + 1] = t end)
@@ -1376,5 +1376,39 @@ do
     check(ns.db.noticePosition == nil and notice.__point[1] == "TOP" and notice.__point[5] == -150, "/junkmate banner reset puts it back at the top")
     GEAR = {}
     Fire("UPDATE_INVENTORY_DURABILITY")
+end
+
+-- The junk line on screen, switched on.
+do
+    local function Item(id, count)
+        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1, isBound = true }
+    end
+    local notice = JunkMateJunkNotice
+    local list = {}
+    for i = 1, 6 do list[i] = Item(9020) end
+    list[7] = Item(9001)
+    BAGS[0] = list
+    for i = 8, 16 do BAGS[0][i] = false end
+    Fire("BAG_UPDATE_DELAYED")
+    check(not notice:IsShown(), "off by default")
+    SlashCmdList.JUNKMATE("junkbanner")
+    local label
+    for _, f in ipairs(Frames()) do
+        if rawget(f, "__text") and f.__text:find("^Junk to sell: ") then label = f end
+    end
+    check(notice:IsShown() and label and label.__text:find("Junk to sell: 1 item (5c)", 1, true)
+        and label.__text:find("Nearest vendor: Mike Miller", 1, true), "/junkmate junkbanner shows it: " .. tostring(label and label.__text))
+    WAYPOINT = nil
+    notice.__scripts.OnMouseUp(notice, "LeftButton")
+    check(WAYPOINT ~= nil, "click it for a map pin on the vendor")
+    notice.__scripts.OnDragStart(notice); notice.__scripts.OnDragStop(notice); notice.__scripts.OnMouseUp(notice, "LeftButton")
+    check(ns.db.junkNoticePosition ~= nil, "drag it and it remembers where")
+    SlashCmdList.JUNKMATE("junkbanner reset")
+    check(ns.db.junkNoticePosition == nil and notice.__point[5] == -180, "/junkmate junkbanner reset puts it back")
+    BAGS[0][7] = Item(9020)
+    Fire("BAG_UPDATE_DELAYED")
+    check(not notice:IsShown(), "nothing to sell: it goes away")
+    SlashCmdList.JUNKMATE("junkbanner")
+    check(not ns.db.junkBanner, "and /junkmate junkbanner switches it off again")
 end
 

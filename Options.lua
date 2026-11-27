@@ -79,7 +79,7 @@ end
 
 local function CreateWindow()
     window = CreateFrame("Frame", addonName .. "Options", UIParent)
-    window:SetSize(652, 456)
+    window:SetSize(652, 484)
     window:SetPoint("CENTER")
     window:SetFrameStrata("HIGH")
     window:SetToplevel(true)
@@ -236,6 +236,14 @@ local function CreateWindow()
             pcall(ns.UpdateDurability)
         end)
 
+    CreateRow(window, 0, true,
+        function() return "Show the junk-to-sell line on screen" end,
+        function() return ns.db.junkBanner end,
+        function()
+            ns.db.junkBanner = not ns.db.junkBanner
+            if ns.UpdateVendorHelp then pcall(ns.UpdateVendorHelp) end
+        end)
+
     -- Two columns under headings. The rows were made in the order above
     -- (which /junkmate and the tests rely on); here is where each one goes.
     local LEFT, RIGHT = 14, 338
@@ -246,7 +254,7 @@ local function CreateWindow()
         heading:SetTextColor(ACCENT_R, ACCENT_G, ACCENT_B)
     end
     Heading("At a vendor", LEFT, -88)
-    Heading("Worn gear", LEFT, -258)
+    Heading("Worn gear", LEFT, -286)
     Heading("Bags", RIGHT, -88)
     Heading("Tooltips and minimap", RIGHT, -288)
     local PLACES = {
@@ -255,11 +263,12 @@ local function CreateWindow()
         [2] = { LEFT, -164 },   -- repair
         [3] = { LEFT, -192 },   -- say in chat
         [18] = { LEFT, -220 },  -- name the nearest vendor
-        [4] = { LEFT, -278 },   -- warn when gear is wearing out
-        [19] = { LEFT, -306 },  -- the worn-gear line on screen
-        [5] = { LEFT, -336 },   -- warn below N%
-        [16] = { LEFT, -366 },  -- track repairers on the minimap
-        [17] = { LEFT, -394 },  -- point to the nearest repairer
+        [20] = { LEFT, -248 },  -- the junk line on screen
+        [4] = { LEFT, -306 },   -- warn when gear is wearing out
+        [19] = { LEFT, -334 },  -- the worn-gear line on screen
+        [5] = { LEFT, -364 },   -- warn below N%
+        [16] = { LEFT, -394 },  -- track repairers on the minimap
+        [17] = { LEFT, -422 },  -- point to the nearest repairer
         [6] = { RIGHT, -108 },  -- warn when bags are nearly full
         [7] = { RIGHT, -136 },  -- warn at N free slots
         [10] = { RIGHT, -166 }, -- make room when loot won't fit
@@ -280,7 +289,7 @@ local function CreateWindow()
 
     local hint = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("BOTTOMLEFT", 16, 12)
-    hint:SetText("Hold Shift at a vendor or the bank to skip it. Drag the worn-gear line to move it.")
+    hint:SetText("Hold Shift at a vendor or the bank to skip it. Drag the lines on screen to move them.")
 end
 
 function ns.RefreshOptions()

@@ -47,7 +47,79 @@ function ns.PinNearestVendor()
     ns.PinRecord(record, "who buys your junk")
 end
 
--- Counts the junk for the coin on the minimap button.
+----------------------------------------------------------------------------
+-- The junk line on screen: off unless switched on (db.junkBanner)
+----------------------------------------------------------------------------
+
+local BANNER_TOP = -180
+local notice = CreateFrame("Frame", "JunkMateJunkNotice", UIParent)
+notice:SetSize(260, 26)
+notice:SetPoint("TOP", UIParent, "TOP", 0, BANNER_TOP)
+notice:SetMovable(true)
+notice:SetClampedToScreen(true)
+notice:EnableMouse(true)
+notice:RegisterForDrag("LeftButton")
+notice:Hide()
+local background = notice:CreateTexture(nil, "BACKGROUND")
+background:SetAllPoints()
+background:SetColorTexture(0, 0, 0, 0.55)
+local text = notice:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+text:SetPoint("CENTER")
+text:SetTextColor(1, 0.82, 0.2)
+
+local dragged = false
+notice:SetScript("OnDragStart", function(self)
+    dragged = true
+    self:StartMoving()
+end)
+notice:SetScript("OnDragStop", function(self)
+    self:StopMovingOrSizing()
+    local point, _, relativePoint, x, y = self:GetPoint()
+    if ns.db then ns.db.junkNoticePosition = { point, relativePoint, x, y } end
+end)
+notice:SetScript("OnMouseUp", function(_, button)
+    if dragged then dragged = false return end
+    if button == "LeftButton" then pcall(ns.PinNearestVendor) end
+end)
+notice:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+    GameTooltip:AddLine("JunkMate: junk to sell", 1, 0.82, 0.2)
+    GameTooltip:AddLine("Drag to move it. Click: map pin on the nearest vendor.", 1, 1, 1, true)
+    GameTooltip:AddLine("/junkmate junkbanner hides it; /junkmate junkbanner reset puts it back.", 0.7, 0.7, 0.7, true)
+    GameTooltip:Show()
+end)
+notice:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+function ns.ResetJunkBanner()
+    if ns.db then ns.db.junkNoticePosition = nil end
+    notice:ClearAllPoints()
+    notice:SetPoint("TOP", UIParent, "TOP", 0, BANNER_TOP)
+end
+
+local placed = false
+local function UpdateBanner(count, value)
+    local db = ns.db
+    if not placed then
+        placed = true
+        local saved = db.junkNoticePosition
+        if type(saved) == "table" and saved[1] then
+            notice:ClearAllPoints()
+            notice:SetPoint(saved[1], UIParent, saved[2], saved[3], saved[4])
+        end
+    end
+    if not db.junkBanner or ns.merchantOpen or count == 0 then
+        notice:Hide()
+        return
+    end
+    local nearest = ns.NearestVendorText()
+    text:SetText(("Junk to sell: %d item%s (%s)"):format(count, count == 1 and "" or "s", ns.Money(value))
+        .. (nearest and ("  |cffffffff%s (click for a map pin)|r"):format(nearest) or ""))
+    notice:SetWidth(math.max(260, (tonumber(text:GetStringWidth() or 0) or 0) + 30))
+    notice:Show()
+end
+
+-- Counts the junk for the coin on the minimap button, and the line on
+-- screen if that is switched on.
 function ns.UpdateVendorHelp()
     if not ns.db then return end
     local count, value = ns.JunkToSell()
@@ -55,6 +127,14 @@ function ns.UpdateVendorHelp()
         ns.junkCount, ns.junkValue = count, value
         if ns.UpdateMinimapButton then pcall(ns.UpdateMinimapButton) end
     end
+    UpdateBanner(count, value)
+end
+
+-- The distance on the line, kept up to date while it shows.
+if C_Timer and C_Timer.NewTicker then
+    C_Timer.NewTicker(3, function()
+        if notice:IsShown() then pcall(ns.UpdateVendorHelp) end
+    end)
 end
 
 ----------------------------------------------------------------------------
@@ -91,6 +171,9 @@ events:SetScript("OnEvent", function(_, event)
     if event == "PLAYER_TARGET_CHANGED" then
         pcall(ns.OnVendorTargeted)
         return
+    elseif event == "MERCHANT_SHOW" then
+        notice:Hide()
+        return
     elseif event == "PLAYER_LOGIN" then
         if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall
                 and Enum and Enum.TooltipDataType and Enum.TooltipDataType.Unit then
@@ -101,7 +184,7 @@ events:SetScript("OnEvent", function(_, event)
     end
     pcall(ns.UpdateVendorHelp)
 end)
-for _, event in ipairs({ "BAG_UPDATE_DELAYED", "PLAYER_ENTERING_WORLD", "MERCHANT_CLOSED",
+for _, event in ipairs({ "BAG_UPDATE_DELAYED", "PLAYER_ENTERING_WORLD", "MERCHANT_SHOW", "MERCHANT_CLOSED",
         "PLAYER_TARGET_CHANGED", "PLAYER_LOGIN" }) do
     pcall(events.RegisterEvent, events, event)
 end

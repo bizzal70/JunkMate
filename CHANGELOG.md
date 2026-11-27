@@ -1,5 +1,9 @@
 # JunkMate
 
+## 0.15.1
+
+- **The junk-to-sell line on screen is back, as an option** (off unless you switch it on): "Show the junk-to-sell line on screen" under *At a vendor*, or `/junkmate junkbanner`. It says what your junk is worth and names the nearest vendor; click it for a map pin, drag it to move it, and `/junkmate junkbanner reset` puts it back. The coin on the minimap button shows junk either way.
+
 ## 0.15.0
 
 - **The options window is in two columns under headings** (At a vendor, Worn gear, Bags, Tooltips and minimap), about half as tall, so it fits small screens like the Legion Go.

@@ -54,6 +54,9 @@ local defaults = {
     vendorGuide = true,
     -- The worn-gear line on screen (Durability.lua), apart from its warning.
     wornBanner = true,
+    -- The junk line on screen (Vendor.lua): off unless switched on; the
+    -- coin on the minimap button shows junk either way.
+    junkBanner = false,
 }
 
 -- Names in the game's Key Bindings window (Bindings.xml).
@@ -315,6 +318,17 @@ SlashCmdList.JUNKMATE = function(msg)
     elseif command == "open" then
         ns.OpenContainers(true)
         return
+    elseif command == "junkbanner" then
+        if (msg or ""):lower():find("reset", 1, true) then
+            ns.ResetJunkBanner()
+            ns.Print("The junk line is back in its place near the top of the screen.")
+        else
+            ns.db.junkBanner = not ns.db.junkBanner
+            pcall(ns.UpdateVendorHelp)
+            ns.Print("The junk line on screen is " .. (ns.db.junkBanner and "on." or "off. The coin on the minimap button still shows junk to sell."))
+        end
+        ns.RefreshOptions()
+        return
     elseif command == "banner" then
         if (msg or ""):lower():find("reset", 1, true) then
             ns.ResetBanner()
@@ -377,6 +391,7 @@ SlashCmdList.JUNKMATE = function(msg)
         ns.Print("/junkmate report - say in chat what was sold and repaired, on or off")
         ns.Print("/junkmate worn - warn when gear is wearing out, on or off")
         ns.Print("/junkmate banner - the worn-gear line on screen, on or off (banner reset puts it back)")
+        ns.Print("/junkmate junkbanner - the junk-to-sell line on screen, on or off (junkbanner reset puts it back)")
         ns.Print("/junkmate bags - warn when your bags are nearly full, on or off")
         ns.Print("/junkmate price - vendor prices on item tooltips, on or off")
         ns.Print("/junkmate button - show or hide the minimap button")
