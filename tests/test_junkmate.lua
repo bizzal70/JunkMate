@@ -232,7 +232,7 @@ local rows = {}
 for _, f in ipairs(Frames()) do
     if rawget(f, "Refresh") and f.__scripts.OnClick then rows[#rows + 1] = f end
 end
-check(#rows == 17, "the options have seventeen controls")
+check(#rows == 18, "the options have eighteen controls")
 local statusLine
 for _, f in ipairs(Frames()) do
     if rawget(f, "__text") and f.__text:find("^Gear") then statusLine = f end
@@ -606,7 +606,7 @@ do
     Fire("PLAYER_REGEN_DISABLED")
     Fire("UI_ERROR_MESSAGE", 3, "Inventory is full.")
     RunAfters()
-    check(room:IsShown() and #tickers == 0 and room.title:GetText():find("quest item", 1, true),
+    check(room:IsShown() and not ns.Restacking() and room.title:GetText():find("quest item", 1, true),
         "a quest item that will not fit, mid-fight: the window shows at once, without restacking first")
     check(room.why:GetText():find("item:9050", 1, true) ~= nil, "offering room for the quest item")
     local deleted = #DELETED
@@ -1222,6 +1222,7 @@ end
 -- Finding a repairer while gear is worn (Repair.lua).
 do
     local notice = JunkMateDurabilityNotice
+    ns.db.vendorGuide = false   -- this block is about repairers only
     GEAR = {}
     Fire("UPDATE_INVENTORY_DURABILITY")
     -- The minimap's tracking menu.
@@ -1295,5 +1296,77 @@ do
     check(PRINTED[#PRINTED - 1]:find("JunkMate knows 1 repairer.", 1, true), "/junkmate repairer says how many it knows: " .. PRINTED[#PRINTED - 1])
     GEAR = {}
     Fire("UPDATE_INVENTORY_DURABILITY")
+    UNITS.npc, UNITS.mouseover, UNITS.target = nil, nil, nil
+    ns.db.vendorGuide = true
+end
+
+-- Finding a vendor whenever there is junk to sell (Vendor.lua).
+do
+    local function Item(id, count)
+        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1, isBound = true }
+    end
+    local player = PLAYER
+    player.map, player.x, player.y = 1, 0.5, 0.5
+    check(ns.db.vendors and ns.db.vendors["Mike Miller@1"] and ns.db.vendors["William MacGregor@1"],
+        "every vendor is remembered when their shop opens, repairer or not")
+    ns.db.vendors = {
+        ["Mike Miller@1"] = { name = "Mike Miller", map = 1, x = 0.62, y = 0.5, faction = "Alliance" },
+        ["Far Away@2"] = { name = "Far Away", map = 2, x = 0.5, y = 0.5, faction = "Alliance" },
+        ["Horde Guy@1"] = { name = "Horde Guy", map = 1, x = 0.51, y = 0.5, faction = "Horde" },
+    }
+    local notice = JunkMateVendorNotice
+    local label
+    for _, f in ipairs(Frames()) do
+        if rawget(f, "__text") == nil and f.SetTextColor and f ~= notice then end
+    end
+    local function Text()
+        for _, f in ipairs(Frames()) do
+            if rawget(f, "__text") and f.__text:find("^Junk to sell: ") then label = f end
+        end
+        return label and label.__text or ""
+    end
+    -- Plenty of room, junk in the bags: shown all the same.
+    local list = {}
+    for i = 1, 6 do list[i] = Item(9020) end
+    list[7] = Item(9001)
+    BAGS[0] = list
+    for i = 8, 16 do BAGS[0][i] = false end
+    for bag = 1, 4 do BAGS[bag] = {} end
+    Fire("BAG_UPDATE_DELAYED")
+    check(notice:IsShown() and Text():find("Junk to sell: 1 item (5c)", 1, true), "junk to sell shows the vendor line, even with room in the bags: " .. Text())
+    -- No junk: nothing shown, full or not.
+    for i = 7, 14 do BAGS[0][i] = Item(9020) end
+    Fire("BAG_UPDATE_DELAYED")
+    check(not notice:IsShown(), "nothing to sell: no vendor line")
+    -- Nearly full with junk: the nearest vendor of your faction on this continent.
+    BAGS[0][14] = Item(9001)
+    Fire("BAG_UPDATE_DELAYED")
+    check(notice:IsShown() and Text():find("Junk to sell: 1 item (5c)", 1, true)
+        and Text():find("Nearest vendor: Mike Miller, 120 yd", 1, true), "what the junk is worth and the nearest vendor: " .. Text())
+    WAYPOINT = nil
+    notice.__scripts.OnMouseUp(notice, "LeftButton")
+    check(WAYPOINT and math.abs(WAYPOINT[2] - 0.62) < 0.001, "click it for a map pin on the vendor")
+    -- Tooltip and target.
+    local lines = {}
+    rawset(GameTooltip, "AddLine", function(_, t) lines[#lines + 1] = t end)
+    rawset(GameTooltip, "GetUnit", function() return "Mike Miller", "mouseover" end)
+    UNITS.mouseover = { name = "Mike Miller" }
+    ns.AddVendorLine(GameTooltip)
+    check(lines[1] == "JunkMate: buys your junk (1 item, 5c)", "a known vendor's tooltip says they'll buy it: " .. tostring(lines[1]))
+    UNITS.target = { name = "Mike Miller" }
+    Fire("PLAYER_TARGET_CHANGED")
+    check(PRINTED[#PRINTED] == "|cffd9a066JunkMate|r: Mike Miller buys junk: you have 1 item to sell (5c).", "targeting one says so: " .. PRINTED[#PRINTED])
+    -- At the vendor it goes away; with the option off it's never shown.
+    CAN_REPAIR, REPAIR_COST = false, 0
+    UNITS.npc = { name = "Mike Miller" }
+    Fire("MERCHANT_SHOW")
+    check(not notice:IsShown(), "at a vendor the line goes away")
+    AFTERS = {}
+    Fire("MERCHANT_CLOSED")
+    ns.db.vendorGuide = false
+    Fire("BAG_UPDATE_DELAYED")
+    check(not notice:IsShown(), "with the option off, never shown")
+    ns.db.vendorGuide = true
+    CAN_REPAIR = true
     UNITS.npc, UNITS.mouseover, UNITS.target = nil, nil, nil
 end

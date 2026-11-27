@@ -1,5 +1,13 @@
 # JunkMate
 
+## 0.14.0
+
+Finding a vendor whenever you have junk to sell, the way 0.13.0 finds a repairer:
+
+- **A line on screen** while you carry anything JunkMate would sell (grey items, plus outgrown food and gear you can't use if that's switched on) says what it's worth and names the nearest vendor you've used, with the distance kept up to date: *"Junk to sell: 6 items (1s 20c)  Nearest vendor: Mike Miller, 120 yd"*. Click it for a map pin and the arrow; drag it to move it. It goes away at a vendor, and once there's nothing left to sell.
+- **Known vendors say so:** their tooltip says *"JunkMate: buys your junk (6 items, 1s 20c)"*, and targeting one says so in chat (once a minute at most).
+- JunkMate now remembers every vendor whose shop you open, not just repairers. `/junkmate vendor` names the nearest one and pins it. Switch it all off in the options ("Point to a vendor when you have junk").
+
 ## 0.13.0
 
 Finding a repairer while your gear is worn:

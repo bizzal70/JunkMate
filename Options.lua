@@ -79,7 +79,7 @@ end
 
 local function CreateWindow()
     window = CreateFrame("Frame", addonName .. "Options", UIParent)
-    window:SetSize(328, 644)
+    window:SetSize(328, 672)
     window:SetPoint("CENTER")
     window:SetFrameStrata("HIGH")
     window:SetToplevel(true)
@@ -220,6 +220,13 @@ local function CreateWindow()
         function() return "Point to the nearest repairer when worn" end,
         function() return ns.db.repairGuide end,
         function() ns.db.repairGuide = not ns.db.repairGuide end)
+    CreateRow(window, -604, true,
+        function() return "Point to a vendor when you have junk" end,
+        function() return ns.db.vendorGuide end,
+        function()
+            ns.db.vendorGuide = not ns.db.vendorGuide
+            if ns.UpdateVendorHelp then pcall(ns.UpdateVendorHelp) end
+        end)
 
     local hint = window:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("BOTTOMLEFT", 16, 12)

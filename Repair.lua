@@ -82,32 +82,38 @@ local function World(mapID, x, y)
     return instance, wx, wy
 end
 
+-- Every vendor is remembered when their shop opens (db.vendors), and those
+-- who repair in db.repairers too.
 function ns.RememberRepairer()
     local db = ns.db
-    if not db or not (CanMerchantRepair and CanMerchantRepair()) then return end
+    if not db then return end
     local name = UnitName and UnitName("npc")
     if not (Usable(name) and type(name) == "string" and name ~= "") then return end
     local mapID, x, y = PlayerSpot()
     if not mapID then return end
-    db.repairers = db.repairers or {}
-    db.repairers[name .. "@" .. mapID] = {
+    local record = {
         name = name, map = mapID, x = x, y = y,
         faction = UnitFactionGroup and UnitFactionGroup("player") or nil, seen = time(),
     }
+    db.vendors = db.vendors or {}
+    db.vendors[name .. "@" .. mapID] = record
+    if CanMerchantRepair and CanMerchantRepair() then
+        db.repairers = db.repairers or {}
+        db.repairers[name .. "@" .. mapID] = record
+    end
 end
 
--- The nearest repairer you have used, on this continent and for your
--- faction: the record and the distance in yards.
-function ns.NearestRepairer()
-    local db = ns.db
-    if not (db and db.repairers) then return end
+-- The nearest of the remembered NPCs in `records`, on this continent and
+-- for your faction: the record and the distance in yards.
+function ns.NearestOf(records)
+    if not records then return end
     local mapID, x, y = PlayerSpot()
     if not mapID then return end
     local here, px, py = World(mapID, x, y)
     if not here then return end
     local faction = UnitFactionGroup and UnitFactionGroup("player")
     local best, bestDistance
-    for _, record in pairs(db.repairers) do
+    for _, record in pairs(records) do
         if not record.faction or record.faction == faction then
             local there, rx, ry = World(record.map, record.x, record.y)
             if there == here and rx then
@@ -119,18 +125,39 @@ function ns.NearestRepairer()
     return best, bestDistance
 end
 
--- "Nearest repair: William MacGregor, 180 yd" (with the zone, if another).
-function ns.NearestRepairText()
-    if not (ns.db and ns.db.repairGuide) then return end
-    local record, distance = ns.NearestRepairer()
-    if not record then return end
+function ns.NearestRepairer()
+    return ns.NearestOf(ns.db and ns.db.repairers)
+end
+
+-- "William MacGregor, 180 yd" (with the zone, if another).
+function ns.DescribeSpot(record, distance)
     local zone = ""
     local mapID = PlayerSpot()
     if record.map ~= mapID and C_Map.GetMapInfo then
         local info = C_Map.GetMapInfo(record.map)
         if info and Usable(info.name) then zone = ", " .. info.name end
     end
-    return ("Nearest repair: %s%s, %d yd"):format(record.name, zone, math.floor(distance + 0.5))
+    return ("%s%s, %d yd"):format(record.name, zone, math.floor(distance + 0.5))
+end
+
+-- A map pin and the arrow on a remembered NPC; `what` says why ("who repairs").
+function ns.PinRecord(record, what)
+    if not (C_Map.SetUserWaypoint and UiMapPoint and UiMapPoint.CreateFromCoordinates) then return end
+    if C_Map.CanSetUserWaypointOnMap and not C_Map.CanSetUserWaypointOnMap(record.map) then
+        ns.Print(("%s, but the map can't be pinned there."):format(record.name))
+        return
+    end
+    C_Map.SetUserWaypoint(UiMapPoint.CreateFromCoordinates(record.map, record.x, record.y))
+    if C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then C_SuperTrack.SetSuperTrackedUserWaypoint(true) end
+    ns.Print(("Map pin set on %s, %s."):format(record.name, what))
+end
+
+-- "Nearest repair: William MacGregor, 180 yd" (with the zone, if another).
+function ns.NearestRepairText()
+    if not (ns.db and ns.db.repairGuide) then return end
+    local record, distance = ns.NearestRepairer()
+    if not record then return end
+    return "Nearest repair: " .. ns.DescribeSpot(record, distance)
 end
 
 -- A map pin on the nearest repairer.
@@ -140,14 +167,7 @@ function ns.PinNearestRepairer()
         ns.Print("JunkMate doesn't know a repairer near here yet. It learns each one when you open their shop.")
         return
     end
-    if not (C_Map.SetUserWaypoint and UiMapPoint and UiMapPoint.CreateFromCoordinates) then return end
-    if C_Map.CanSetUserWaypointOnMap and not C_Map.CanSetUserWaypointOnMap(record.map) then
-        ns.Print(("Nearest repair: %s, but the map can't be pinned there."):format(record.name))
-        return
-    end
-    C_Map.SetUserWaypoint(UiMapPoint.CreateFromCoordinates(record.map, record.x, record.y))
-    if C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then C_SuperTrack.SetSuperTrackedUserWaypoint(true) end
-    ns.Print(("Map pin set on %s, who repairs."):format(record.name))
+    ns.PinRecord(record, "who repairs")
 end
 
 -- Clicking the worn-gear line (not dragging it) pins the nearest repairer.
@@ -167,15 +187,18 @@ end
 -- 3. Known repairers on tooltips and when targeted
 ----------------------------------------------------------------------------
 
-function ns.IsKnownRepairer(name)
-    local db = ns.db
-    if not (db and db.repairers and Usable(name) and type(name) == "string") then return false end
+function ns.IsKnownIn(records, name)
+    if not (records and Usable(name) and type(name) == "string") then return false end
     local mapID = PlayerSpot()
-    if mapID and db.repairers[name .. "@" .. mapID] then return true end
-    for _, record in pairs(db.repairers) do
+    if mapID and records[name .. "@" .. mapID] then return true end
+    for _, record in pairs(records) do
         if record.name == name then return true end
     end
     return false
+end
+
+function ns.IsKnownRepairer(name)
+    return ns.IsKnownIn(ns.db and ns.db.repairers, name)
 end
 
 function ns.AddRepairLine(tooltip)

@@ -50,6 +50,8 @@ local defaults = {
     -- remembered repairer on the worn-gear line (Repair.lua).
     repairTracking = true,
     repairGuide = true,
+    -- With junk to sell: the nearest remembered vendor on screen (Vendor.lua).
+    vendorGuide = true,
 }
 
 -- Names in the game's Key Bindings window (Bindings.xml).
@@ -311,6 +313,14 @@ SlashCmdList.JUNKMATE = function(msg)
     elseif command == "open" then
         ns.OpenContainers(true)
         return
+    elseif command == "vendor" or command == "vendors" then
+        local count = 0
+        for _ in pairs(ns.db.vendors or {}) do count = count + 1 end
+        local record, distance = ns.NearestVendor()
+        ns.Print(("JunkMate knows %d vendor%s.%s"):format(count, count == 1 and "" or "s",
+            record and (" Nearest: " .. ns.DescribeSpot(record, distance) .. ".") or ""))
+        if record then ns.PinNearestVendor() end
+        return
     elseif command == "repairer" or command == "repairers" then
         local count = 0
         for _ in pairs(ns.db.repairers or {}) do count = count + 1 end
@@ -360,6 +370,7 @@ SlashCmdList.JUNKMATE = function(msg)
         ns.Print("/junkmate restack - put partial stacks together")
         ns.Print("/junkmate open - open clams and other things that open")
         ns.Print("/junkmate repairer - the nearest repairer you've used, with a map pin")
+        ns.Print("/junkmate vendor - the nearest vendor you've used, with a map pin")
         ns.Print("/junkmate bank - tidy the open bank now")
         ns.Print("/junkmate keep - items never offered (keep clear to empty it)")
         ns.Print("/junkmate destroyed - what was destroyed this session")

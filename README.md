@@ -21,6 +21,8 @@ It also **warns you when your gear is wearing out**. While your most worn piece 
 
 While your gear is worn it also **helps you find a repairer**: the minimap's own repair tracking is switched on (where the game has it), the worn-gear line names the nearest repairer you've used, with the distance ("Nearest repair: William MacGregor, 180 yd"; click it for a map pin), and a known repairer's tooltip says they repair. JunkMate learns each repairer when you open their shop.
 
+Whenever you carry junk it would sell, it also **points you to a vendor**: a line on screen says what the junk is worth and names the nearest vendor you've used ("Junk to sell: 6 items (1s 20c)  Nearest vendor: Mike Miller, 120 yd"; click it for a map pin), and a known vendor's tooltip says they'll buy it. JunkMate learns each vendor when you open their shop.
+
 It also **warns you when your bags are nearly full**. Down to your last 4 slots, the minimap button shows how many are left (a yellow number) and chat says so; once the bags are full it shows a flashing red **!**. Set it to 2, 4 or 8 free slots. Only ordinary bags count, not herb, mining or other special bags.
 
 **Makes room for loot.** When something won't fit in your bags, JunkMate first **restacks** them, putting partial stacks together, which loses nothing. If that doesn't free a slot, a small window offers to destroy the cheapest thing you don't need, so the loot fits:
