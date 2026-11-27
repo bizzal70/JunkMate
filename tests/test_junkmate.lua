@@ -1544,3 +1544,26 @@ do
     UNITS.mouseover, UNITS.target = nil, nil
 end
 
+-- It says when it learns a vendor, once.
+do
+    ns.db.vendors = {}
+    UNITS.npc = { name = "Christopher Hewen" }
+    CAN_REPAIR, REPAIR_COST = false, 0
+    local said = #PRINTED
+    Fire("MERCHANT_SHOW"); AFTERS = {}; Fire("MERCHANT_CLOSED")
+    local learned = 0
+    for i = said + 1, #PRINTED do
+        if PRINTED[i]:find("Learned a vendor: Christopher Hewen. All your characters will know them now.", 1, true) then learned = learned + 1 end
+    end
+    check(learned == 1, "opening a new vendor's shop says it learned them")
+    said = #PRINTED
+    Fire("MERCHANT_SHOW"); AFTERS = {}; Fire("MERCHANT_CLOSED")
+    learned = 0
+    for i = said + 1, #PRINTED do
+        if PRINTED[i]:find("Learned a vendor", 1, true) then learned = learned + 1 end
+    end
+    check(learned == 0, "but only the first time")
+    CAN_REPAIR = true
+    UNITS.npc = nil
+end
+

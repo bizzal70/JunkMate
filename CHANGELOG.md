@@ -1,5 +1,9 @@
 # JunkMate
 
+## 0.17.2
+
+- **Says when it learns a vendor:** the first time any of your characters learns one, by opening their shop or by hovering or targeting them, chat says *"Learned a vendor: Christopher Hewen. All your characters will know them now."* Vendors it already knows stay quiet. (Opening a shop has always taught JunkMate, silently, since 0.14.0.)
+
 ## 0.17.1
 
 - **Learning vendors on clients that won't say how far away an NPC is:** targeting a vendor now teaches JunkMate even then (hovering still needs the distance). New: `/junkmate learn` tries to learn your target and says why if it can't.

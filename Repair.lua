@@ -139,7 +139,9 @@ function ns.RememberRepairer()
         faction = UnitFactionGroup and UnitFactionGroup("player") or nil, seen = time(),
     }
     db.vendors = db.vendors or {}
+    local new = db.vendors[name .. "@" .. mapID] == nil
     db.vendors[name .. "@" .. mapID] = record
+    if new and ns.SayLearned then ns.SayLearned(name) end
     if CanMerchantRepair and CanMerchantRepair() then
         db.repairers = db.repairers or {}
         db.repairers[name .. "@" .. mapID] = record

@@ -346,8 +346,16 @@ function ns.LearnVendor(unit)
     local x, y = pos:GetXY()
     db.vendors[key] = { name = name, map = mapID, x = x, y = y, learned = true,
         faction = UnitFactionGroup and UnitFactionGroup("player") or nil, seen = time() }
-    if not known then pcall(ns.UpdateVendorPins) end
+    if not known then
+        ns.SayLearned(name)
+        pcall(ns.UpdateVendorPins)
+    end
     return true, close == nil and "learned (distance unknown, so at your position)" or "learned"
+end
+
+-- Said once, the first time any of your characters learns a vendor.
+function ns.SayLearned(name)
+    ns.Print(("Learned a vendor: %s. All your characters will know them now."):format(name))
 end
 
 -- /junkmate learn: try to learn the target, and say what happened.
