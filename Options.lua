@@ -221,7 +221,7 @@ local function CreateWindow()
         function() return ns.db.repairGuide end,
         function() ns.db.repairGuide = not ns.db.repairGuide end)
     CreateRow(window, -604, true,
-        function() return "Name the nearest vendor when you have junk" end,
+        function() return "Pin the nearest vendor when you have junk" end,
         function() return ns.db.vendorGuide end,
         function()
             ns.db.vendorGuide = not ns.db.vendorGuide

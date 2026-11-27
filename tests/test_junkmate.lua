@@ -1399,7 +1399,7 @@ do
         if rawget(f, "__text") and f.__text:find("^Junk to sell: ") then label = f end
     end
     check(notice:IsShown() and label and label.__text:find("Junk to sell: 1 item (5c)", 1, true)
-        and label.__text:find("Nearest vendor: Mike Miller", 1, true), "/junkmate junkbanner shows it: " .. tostring(label and label.__text))
+        and not label.__text:find("Nearest vendor", 1, true), "/junkmate junkbanner shows it, just the junk: " .. tostring(label and label.__text))
     WAYPOINT = nil
     notice.__scripts.OnMouseUp(notice, "LeftButton")
     check(WAYPOINT ~= nil, "click it for a map pin on the vendor")
@@ -1565,5 +1565,61 @@ do
     check(learned == 0, "but only the first time")
     CAN_REPAIR = true
     UNITS.npc = nil
+end
+
+-- The map pin on the nearest vendor, all by itself.
+do
+    local function Item(id, count)
+        return { itemID = id, stackCount = count or 1, quality = ITEMS[id].q, hyperlink = "item:" .. id, iconFileID = 1, isBound = true }
+    end
+    PLAYER.map, PLAYER.x, PLAYER.y = 1, 0.5, 0.5
+    ns.db.vendors = {
+        ["Near One@1"] = { name = "Near One", map = 1, x = 0.55, y = 0.5, faction = "Alliance" },
+        ["Far One@1"] = { name = "Far One", map = 1, x = 0.8, y = 0.5, faction = "Alliance" },
+    }
+    ns.db.vendorWaypoint, ns.db.vendorPinDismissed = nil, nil
+    WAYPOINT, SUPERTRACKED = nil, false
+    local list = {}
+    for i = 1, 6 do list[i] = Item(9020) end
+    list[7] = Item(9001)
+    BAGS[0] = list
+    for i = 8, 16 do BAGS[0][i] = false end
+    ns.junkCount = nil
+    Fire("BAG_UPDATE_DELAYED")
+    check(WAYPOINT and math.abs(WAYPOINT[2] - 0.55) < 0.001 and SUPERTRACKED, "with junk, the nearest vendor gets the map pin and arrow")
+    -- Walk towards the other one: the pin moves.
+    PLAYER.x = 0.78
+    ns.UpdateVendorHelp()
+    check(WAYPOINT and math.abs(WAYPOINT[2] - 0.8) < 0.001, "a closer vendor takes the pin")
+    -- Sold out: the pin goes.
+    BAGS[0][7] = Item(9020)
+    Fire("BAG_UPDATE_DELAYED")
+    check(WAYPOINT == nil and ns.db.vendorWaypoint == nil, "nothing left to sell: the pin is cleared")
+    -- Your own pin is left alone.
+    WAYPOINT = { 1, 0.1, 0.1 }
+    BAGS[0][7] = Item(9001)
+    Fire("BAG_UPDATE_DELAYED")
+    check(WAYPOINT[2] == 0.1, "a map pin you placed yourself is never moved")
+    BAGS[0][7] = Item(9020)
+    Fire("BAG_UPDATE_DELAYED")
+    check(WAYPOINT and WAYPOINT[2] == 0.1, "or removed")
+    -- Removing JunkMate's pin: not put back on that vendor this time.
+    WAYPOINT = nil
+    BAGS[0][7] = Item(9001)
+    Fire("BAG_UPDATE_DELAYED")
+    check(WAYPOINT ~= nil, "(pinned again with new junk)")
+    WAYPOINT = nil
+    ns.UpdateVendorHelp()
+    check(WAYPOINT == nil, "if you remove JunkMate's pin, it stays removed")
+    BAGS[0][7] = Item(9020); Fire("BAG_UPDATE_DELAYED")
+    BAGS[0][7] = Item(9001); Fire("BAG_UPDATE_DELAYED")
+    check(WAYPOINT ~= nil, "until the next time you have junk")
+    -- Option off: no pin.
+    ns.db.vendorGuide = false
+    ns.UpdateVendorHelp()
+    check(WAYPOINT == nil, "with the option off, the pin JunkMate placed is cleared")
+    ns.db.vendorGuide = true
+    BAGS[0][7] = Item(9020); Fire("BAG_UPDATE_DELAYED")
+    WAYPOINT = nil
 end
 

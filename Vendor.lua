@@ -111,9 +111,7 @@ local function UpdateBanner(count, value)
         notice:Hide()
         return
     end
-    local nearest = ns.NearestVendorText()
-    text:SetText(("Junk to sell: %d item%s (%s)"):format(count, count == 1 and "" or "s", ns.Money(value))
-        .. (nearest and ("  |cffffffff%s (click for a map pin)|r"):format(nearest) or ""))
+    text:SetText(("Junk to sell: %d item%s (%s)"):format(count, count == 1 and "" or "s", ns.Money(value)))
     notice:SetWidth(math.max(260, (tonumber(text:GetStringWidth() or 0) or 0) + 30))
     notice:Show()
 end
@@ -249,12 +247,64 @@ function ns.UpdateVendorHelp()
     holder:SetScript("OnUpdate", showPins and FollowPlayer or nil)
     pcall(ns.UpdateVendorPins)
     UpdateBanner(count, value)
+    pcall(ns.UpdateVendorWaypoint, count)
+end
+
+----------------------------------------------------------------------------
+-- The map pin on the nearest vendor while there is junk (db.vendorGuide)
+----------------------------------------------------------------------------
+
+-- The map pin JunkMate placed: { name, map, x, y }, kept over a /reload.
+-- A pin you placed yourself is never moved or removed; a JunkMate pin you
+-- removed isn't put back on that vendor until the next time you have junk.
+
+local function PinParts(point)
+    if type(point) ~= "table" then return end
+    if point.uiMapID and point.position then
+        local x, y = point.position:GetXY()
+        return point.uiMapID, x, y
+    end
+    return point[1], point[2], point[3]
+end
+
+local function PinIsOurs()
+    local ours = ns.db and ns.db.vendorWaypoint
+    if not ours or not (C_Map.HasUserWaypoint and C_Map.HasUserWaypoint()) then return false end
+    local map, x, y = PinParts(C_Map.GetUserWaypoint())
+    return map == ours.map and type(x) == "number" and math.abs(x - ours.x) < 0.0001 and math.abs(y - ours.y) < 0.0001
+end
+
+function ns.UpdateVendorWaypoint(count)
+    local db = ns.db
+    if not (db and C_Map and C_Map.SetUserWaypoint and UiMapPoint and UiMapPoint.CreateFromCoordinates) then return end
+    local ours = db.vendorWaypoint
+    -- Our pin gone, though we didn't remove it: you took it off.
+    if ours and not PinIsOurs() then
+        if not (C_Map.HasUserWaypoint and C_Map.HasUserWaypoint()) then db.vendorPinDismissed = ours.name end
+        db.vendorWaypoint, ours = nil, nil
+    end
+    local record = db.vendorGuide and (count or 0) > 0 and ns.NearestVendor()
+    if not record then
+        if ours then C_Map.ClearUserWaypoint() end
+        db.vendorWaypoint = nil
+        if (count or 0) == 0 then db.vendorPinDismissed = nil end
+        return
+    end
+    if ours and ours.name == record.name and ours.map == record.map then return end
+    if record.name == db.vendorPinDismissed then return end
+    -- Your own pin stays where you put it.
+    if not ours and C_Map.HasUserWaypoint and C_Map.HasUserWaypoint() then return end
+    if C_Map.CanSetUserWaypointOnMap and not C_Map.CanSetUserWaypointOnMap(record.map) then return end
+    C_Map.SetUserWaypoint(UiMapPoint.CreateFromCoordinates(record.map, record.x, record.y))
+    if C_SuperTrack and C_SuperTrack.SetSuperTrackedUserWaypoint then C_SuperTrack.SetSuperTrackedUserWaypoint(true) end
+    db.vendorWaypoint = { name = record.name, map = record.map, x = record.x, y = record.y }
 end
 
 -- The distance on the line, kept up to date while it shows.
 if C_Timer and C_Timer.NewTicker then
     C_Timer.NewTicker(3, function()
-        if notice:IsShown() then pcall(ns.UpdateVendorHelp) end
+        -- While there's junk: the line's numbers and the nearest vendor's pin.
+        if (ns.junkCount or 0) > 0 or notice:IsShown() then pcall(ns.UpdateVendorHelp) end
     end)
 end
 

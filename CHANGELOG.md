@@ -1,5 +1,11 @@
 # JunkMate
 
+## 0.18.0
+
+- **A map pin on the nearest vendor, all by itself:** while you carry junk, the map pin and its arrow sit on the nearest vendor JunkMate knows. It moves when a closer one is nearer, and it's cleared once there's nothing left to sell.
+- A map pin you placed yourself is never moved or removed. If you remove JunkMate's pin, it isn't put back on that vendor until the next time you have junk.
+- The junk line on screen now just says what your junk is worth, without the vendor's name. The option is now called "Pin the nearest vendor when you have junk".
+
 ## 0.17.2
 
 - **Says when it learns a vendor:** the first time any of your characters learns one, by opening their shop or by hovering or targeting them, chat says *"Learned a vendor: Christopher Hewen. All your characters will know them now."* Vendors it already knows stay quiet. (Opening a shop has always taught JunkMate, silently, since 0.14.0.)
