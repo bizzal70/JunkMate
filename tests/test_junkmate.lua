@@ -1334,10 +1334,11 @@ do
     for bag = 1, 4 do BAGS[bag] = {} end
     Fire("BAG_UPDATE_DELAYED")
     check(notice:IsShown() and Text():find("Junk to sell: 1 item (5c)", 1, true), "junk to sell shows the vendor line, even with room in the bags: " .. Text())
+    check(ns.junkBadge:IsShown(), "and a coin shows on the minimap button")
     -- No junk: nothing shown, full or not.
     for i = 7, 14 do BAGS[0][i] = Item(9020) end
     Fire("BAG_UPDATE_DELAYED")
-    check(not notice:IsShown(), "nothing to sell: no vendor line")
+    check(not notice:IsShown() and not ns.junkBadge:IsShown(), "nothing to sell: no vendor line, and no coin on the minimap button")
     -- Nearly full with junk: the nearest vendor of your faction on this continent.
     BAGS[0][14] = Item(9001)
     Fire("BAG_UPDATE_DELAYED")
@@ -1365,7 +1366,7 @@ do
     Fire("MERCHANT_CLOSED")
     ns.db.vendorGuide = false
     Fire("BAG_UPDATE_DELAYED")
-    check(not notice:IsShown(), "with the option off, never shown")
+    check(not notice:IsShown() and ns.junkBadge:IsShown(), "with the option off the line is never shown, but the coin still is")
     ns.db.vendorGuide = true
     CAN_REPAIR = true
     UNITS.npc, UNITS.mouseover, UNITS.target = nil, nil, nil

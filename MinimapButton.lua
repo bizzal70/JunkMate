@@ -59,6 +59,18 @@ hammerIcon:SetAllPoints()
 hammerIcon:SetTexture("Interface\\Icons\\Trade_BlackSmithing")
 hammerIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 ns.wornBadge = hammer
+
+-- A gold coin in the bottom-right corner while you carry junk JunkMate
+-- would sell (Vendor.lua counts it).
+local junk = CreateFrame("Frame", nil, button)
+junk:SetSize(13, 13)
+junk:SetPoint("CENTER", button, "CENTER", 9, -8)
+junk:SetFrameLevel(button:GetFrameLevel() + 3)
+junk:Hide()
+local junkIcon = junk:CreateTexture(nil, "ARTWORK")
+junkIcon:SetAllPoints()
+junkIcon:SetTexture("Interface\\MoneyFrame\\UI-GoldIcon")
+ns.junkBadge = junk
 local hammerPulse = hammer:CreateAnimationGroup()
 hammerPulse:SetLooping("BOUNCE")
 local hammerFade = hammerPulse:CreateAnimation("Alpha")
@@ -113,6 +125,10 @@ button:SetScript("OnEnter", function(self)
             GameTooltip:AddLine(("Bags nearly full: %d slot%s left"):format(ns.bagsLow, ns.bagsLow == 1 and "" or "s"), 1, 0.82, 0.2)
         end
     end
+    if ns.junkCount and ns.junkCount > 0 then
+        GameTooltip:AddLine(("Junk to sell: %d item%s (%s)"):format(ns.junkCount, ns.junkCount == 1 and "" or "s",
+            ns.Money(ns.junkValue or 0)), 1, 0.82, 0.2)
+    end
     GameTooltip:AddLine("Click: options, gear and bags", 1, 1, 1)
     GameTooltip:AddLine("Drag: move this button", 0.7, 0.7, 0.7)
     GameTooltip:Show()
@@ -139,6 +155,7 @@ function ns.UpdateMinimapButton()
     end
     -- Full bags: a flashing red "!". Bags getting low: how many slots are
     -- left, in yellow, steady.
+    junk:SetShown((ns.junkCount or 0) > 0)
     if ns.bagsLow == 0 then
         mark:SetText("!")
         mark:SetTextColor(1, 0.15, 0.1)

@@ -1,5 +1,9 @@
 # JunkMate
 
+## 0.14.1
+
+- **A gold coin on the minimap button** while you carry junk JunkMate would sell, in the bottom-right corner (the hammer for worn gear stays bottom-left, the bag count top-right). Hover the button to see how many items and what they're worth.
+
 ## 0.14.0
 
 Finding a vendor whenever you have junk to sell, the way 0.13.0 finds a repairer:

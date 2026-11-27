@@ -93,8 +93,13 @@ function ns.UpdateVendorHelp()
             notice:SetPoint(saved[1], UIParent, saved[2], saved[3], saved[4])
         end
     end
-    local count, value = 0, 0
-    if db.vendorGuide and not ns.merchantOpen then count, value = ns.JunkToSell() end
+    -- The junk carried, for the coin on the minimap button too.
+    local count, value = ns.JunkToSell()
+    if ns.junkCount ~= count or ns.junkValue ~= value then
+        ns.junkCount, ns.junkValue = count, value
+        if ns.UpdateMinimapButton then pcall(ns.UpdateMinimapButton) end
+    end
+    if not db.vendorGuide or ns.merchantOpen then count = 0 end
     if count == 0 then
         notice:Hide()
         if ticker then ticker:Cancel(); ticker = nil end
